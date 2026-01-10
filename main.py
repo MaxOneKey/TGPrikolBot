@@ -7,9 +7,9 @@ import os
 
 # --- НАЛАШТУВАННЯ ---
 TOKEN = '8236217660:AAHGeDEer-h-CoJKvFwRrd6iFvFPFES6dKg'
-TARGET_CHAT_ID = -100123456789
+TARGET_CHAT_ID = -1001931356645
 VIDEO_FILE_ID = 'BAACAgIAAxkBAAMDaWKNbYKtFWObQtVrOlT4PwW4FMkAAm-WAAKFOhhL_uW0ao2rRtw4BA'
-TIME_TO_POST = "09:00"
+TIME_TO_POST = "11:51"
 DAILY_PHRASE = "Мері крісмас🎄👙"
 KEYWORD = "мері крісмас"
 
@@ -21,7 +21,7 @@ app = Flask(__name__)
 def handle_messages(message):
     if KEYWORD in message.text.lower():
         try:
-            bot.send_video(message.chat.id, VIDEO_FILE_ID, caption="Хіхіхіха")
+            bot.send_video(message.chat.id, VIDEO_FILE_ID, caption="👀")
         except Exception as e:
             print(f"Error: {e}")
 
@@ -57,5 +57,6 @@ if __name__ == "__main__":
 
     t2 = threading.Thread(target=run_bot)
     t2.start()
+
 
     run_flask()
