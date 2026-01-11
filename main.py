@@ -9,8 +9,8 @@ import os
 TOKEN = '8236217660:AAHGeDEer-h-CoJKvFwRrd6iFvFPFES6dKg'
 TARGET_CHAT_ID = -1001931356645
 VIDEO_FILE_ID = 'BAACAgIAAxkBAAMDaWKNbYKtFWObQtVrOlT4PwW4FMkAAm-WAAKFOhhL_uW0ao2rRtw4BA'
-TIME_TO_POST = "11:51"
-DAILY_PHRASE = "Мері крісмас🎄👙"
+TIME_TO_POST = "9:51"
+DAILY_PHRASE = "Мері крісмас🎄👙 @Sasik0809"
 KEYWORD = "мері крісмас"
 
 bot = telebot.TeleBot(TOKEN)
@@ -60,3 +60,4 @@ if __name__ == "__main__":
 
 
     run_flask()
+
