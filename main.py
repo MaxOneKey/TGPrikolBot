@@ -11,7 +11,9 @@ TARGET_CHAT_ID = -1001931356645
 VIDEO_FILE_ID = 'BAACAgIAAxkBAAMDaWKNbYKtFWObQtVrOlT4PwW4FMkAAm-WAAKFOhhL_uW0ao2rRtw4BA'
 TIME_TO_POST = "9:51"
 DAILY_PHRASE = "Мері крісмас🎄👙 @Sasik0809"
+PING_PHRAZE = "Канєшно🤤"
 KEYWORD = "мері крісмас"
+KEYWORD2 = "Сосав?"
 
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__) 
@@ -22,6 +24,13 @@ def handle_messages(message):
     if KEYWORD in message.text.lower():
         try:
             bot.send_video(message.chat.id, VIDEO_FILE_ID, caption="👀")
+        except Exception as e:
+            print(f"Error: {e}")
+
+def bot_ping(message):
+     if KEYWORD2 in message.text.lower():
+        try:
+            bot.send_message(TARGET_CHAT_ID, PING_PHRAZE)
         except Exception as e:
             print(f"Error: {e}")
 
@@ -60,4 +69,5 @@ if __name__ == "__main__":
 
 
     run_flask()
+
 
