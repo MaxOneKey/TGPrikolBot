@@ -15,6 +15,10 @@ PING_PHRAZE = "Канєшно🤤"
 KEYWORD = "мері крісмас"
 KEYWORD2 = "сосав?"
 
+# --- ІНІЦІАЛІЗАЦІЯ
+bot = telebot.TeleBot(TOKEN)
+app = Flask(__name__) 
+
 # --- БЛОК БОТА ---
 
 @bot.message_handler(func=lambda message: True)
@@ -36,6 +40,7 @@ def handle_messages(message):
 def send_daily_message():
     try:
         bot.send_message(TARGET_CHAT_ID, DAILY_PHRASE)
+        print("Щоденне повідомлення відправлено!")
     except Exception as e:
         print(f"Timer Error: {e}")
 
@@ -49,25 +54,24 @@ def run_scheduler():
 def run_bot():
     bot.infinity_polling()
 
-# --- БЛОК ВЕБ-СЕРВЕРА (Щоб Render не спав) ---
+# --- БЛОК ВЕБ-СЕРВЕРА ---
 @app.route('/')
 def index():
     return "Bot is alive!"
 
 def run_flask():
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    # Render передає порт автоматично
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
 
 # --- ЗАПУСК ВСЬОГО РАЗОМ ---
 if __name__ == "__main__":
-
+    print("Бот запускається...")
+    
     t1 = threading.Thread(target=run_scheduler)
     t1.start()
 
     t2 = threading.Thread(target=run_bot)
     t2.start()
 
-
     run_flask()
-
-
-
