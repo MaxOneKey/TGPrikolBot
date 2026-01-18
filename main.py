@@ -66,9 +66,9 @@ class CurrencyProvider:
                     f"🏪 Приват: {usd_buy:.2f} / {usd_sale:.2f}\n\n")
 
         if target_currency == 'EUR' or target_currency is None:
-            msg += (f"🇪🇺 *Євро (EUR):*\n"
-                    f"🏦 НБУ: {eur_nbu:.2f} грн\n"
-                    f"🏪 Приват: {eur_buy:.2f} / {eur_sale:.2f}")
+            msg += (f" *Євро (EUR):*\n"
+                    f"НБУ: {eur_nbu:.2f} грн\n"
+                    f"Приват: {eur_buy:.2f} / {eur_sale:.2f}")
         
         if msg == "": 
              return "💰 Курс валют оновлено."
@@ -162,13 +162,13 @@ class MyBot:
                 msg = self.bot.send_message(chat_id, f"👤 *{name}*, статус: `{status}`", parse_mode="Markdown")
                 self.remember_message(msg)
 
-    def send_daily_message(self):
-        try:
-            msg = self.bot.send_message(TARGET_CHAT_ID, "Мері крісмас🎄👙 @Sasik0809")
-            self.remember_message(msg)
-            print("Щоденне повідомлення відправлено!")
-        except Exception as e:
-            print(f"Daily Message Error: {e}")
+#    def send_daily_message(self):
+#       try:
+#           msg = self.bot.send_message(TARGET_CHAT_ID, "Мері крісмас🎄👙 @Sasik0809")
+#           self.remember_message(msg)
+#           print("Щоденне повідомлення відправлено!")
+#       except Exception as e:
+#           print(f"Daily Message Error: {e}")
 
     def start(self):
         self.bot.infinity_polling()
@@ -191,3 +191,4 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
