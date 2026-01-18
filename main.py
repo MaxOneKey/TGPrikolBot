@@ -24,10 +24,18 @@ USER_STATUSES = {
 DEFAULT_STATUS = "👤 Гість"
 
 class CurrencyProvider:
+
     CURRENCY_MAP = {
-        'usd': 'USD', 'долар': 'USD', 'доларів': 'USD', 'баксів': 'USD', '$': 'USD',
-        'eur': 'EUR', 'євро': 'EUR', '€': 'EUR',
-        'uah': 'UAH', 'гривня': 'UAH', 'гривень': 'UAH', 'грн': 'UAH'
+
+        'usd': 'USD', '$': 'USD', 'usdt': 'USD',
+        'долар': 'USD', 'долара': 'USD', 'доларів': 'USD', 'долари': 'USD',
+        'бакс': 'USD', 'бакса': 'USD', 'баксів': 'USD', 'бакси': 'USD',
+
+        'eur': 'EUR', '€': 'EUR',
+        'євро': 'EUR', 'евро': 'EUR',
+   
+        'uah': 'UAH', '₴': 'UAH',
+        'гривня': 'UAH', 'гривні': 'UAH', 'гривень': 'UAH', 'грн': 'UAH'
     }
 
     @staticmethod
@@ -66,9 +74,9 @@ class CurrencyProvider:
                     f"🏪 Приват: {usd_buy:.2f} / {usd_sale:.2f}\n\n")
 
         if target_currency == 'EUR' or target_currency is None:
-            msg += (f" *Євро (EUR):*\n"
-                    f"НБУ: {eur_nbu:.2f} грн\n"
-                    f"Приват: {eur_buy:.2f} / {eur_sale:.2f}")
+            msg += (f"🇪🇺 *Євро (EUR):*\n"
+                    f"🏦 НБУ: {eur_nbu:.2f} грн\n"
+                    f"🏪 Приват: {eur_buy:.2f} / {eur_sale:.2f}")
         
         if msg == "": 
              return "💰 Курс валют оновлено."
@@ -90,7 +98,7 @@ class CurrencyProvider:
         rate_to = 1.0 if to_code == 'UAH' else next((i["rate"] for i in nbu_data if i["cc"] == to_code), None)
 
         if not rate_from or not rate_to:
-            return "❌ Не знайшов курс для конвертації."
+            return "❌ Не знайшов курс для такої конвертації."
 
         result = (amount * rate_from) / rate_to
         return f"💱 *Конвертація (по НБУ):*\n{amount:.2f} {from_code} = `{result:.2f} {to_code}`"
@@ -99,7 +107,7 @@ class MyBot:
     def __init__(self):
         self.bot = telebot.TeleBot(TOKEN)
         self.my_message_ids = []
-#        schedule.every().day.at(TIME_TO_POST).do(self.send_daily_message)
+        schedule.every().day.at(TIME_TO_POST).do(self.send_daily_message)
         self.register_handlers()
 
     def remember_message(self, sent_message):
@@ -117,7 +125,9 @@ class MyBot:
 
             print(f"✍️ ПИШЕ: {name} | ID: {user_id} | Текст: {text}")
 
-            pattern = r"(\d+[.,]?\d*)\s+([а-яА-Яa-zA-Z$]+)\s+(?:в|у|in|to)\s+([а-яА-Яa-zA-Z$]+)"
+            #  КОНВЕРТЕР 
+    
+            pattern = r"(\d+[.,]?\d*)\s*([а-яА-Яa-zA-Z$€]+)\s+(?:в|у|in|to)\s+([а-яА-Яa-zA-Z$€]+)"
             match = re.search(pattern, text)
             
             if match:
@@ -125,22 +135,31 @@ class MyBot:
                 curr_from = match.group(2)
                 curr_to = match.group(3)
                 
+                print(f"🔄 Спроба конвертації: {amount} {curr_from} -> {curr_to}")
+                
                 result_text = CurrencyProvider.convert_currency(amount, curr_from, curr_to)
+                
                 if result_text:
                     msg = self.bot.send_message(chat_id, result_text, parse_mode="Markdown")
                     self.remember_message(msg)
-                    return 
-                    
-            if "долар" in text or "usd" in text:
-                msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message('USD'), parse_mode="Markdown")
-                self.remember_message(msg)
-            elif "євро" in text or "eur" in text:
-                msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message('EUR'), parse_mode="Markdown")
-                self.remember_message(msg)
-            elif "курс" in text:
+                else:
+                    pass 
+                
+                return 
+
+            if text == "курс":
                 msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message(None), parse_mode="Markdown")
                 self.remember_message(msg)
+        
+            elif text in ["usd", "долар", "dollar", "$"]:
+                msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message('USD'), parse_mode="Markdown")
+                self.remember_message(msg)
+            
 
+            elif text in ["eur", "євро", "euro", "€"]:
+                msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message('EUR'), parse_mode="Markdown")
+                self.remember_message(msg)
+                
             if text in ["id", "айді", "мій id"]:
                 msg = self.bot.reply_to(message, f"🆔 Твій ID: `{user_id}`", parse_mode="Markdown")
                 self.remember_message(msg)
@@ -162,13 +181,13 @@ class MyBot:
                 msg = self.bot.send_message(chat_id, f"👤 *{name}*, статус: `{status}`", parse_mode="Markdown")
                 self.remember_message(msg)
 
-#    def send_daily_message(self):
-#       try:
-#           msg = self.bot.send_message(TARGET_CHAT_ID, "Мері крісмас🎄👙 @Sasik0809")
-#           self.remember_message(msg)
-#           print("Щоденне повідомлення відправлено!")
-#       except Exception as e:
-#           print(f"Daily Message Error: {e}")
+    def send_daily_message(self):
+        try:
+            msg = self.bot.send_message(TARGET_CHAT_ID, "Мері крісмас🎄👙 @Sasik0809")
+            self.remember_message(msg)
+            print("Щоденне повідомлення відправлено!")
+        except Exception as e:
+            print(f"Daily Message Error: {e}")
 
     def start(self):
         self.bot.infinity_polling()
@@ -191,5 +210,3 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
-
-
