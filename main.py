@@ -103,18 +103,18 @@ class MyBot:
                 self.remember_message(msg)
 
         # ОБРОБКА РЕАКЦІЙ (Тільки на свої)
-        @self.bot.message_reaction_handler(func=lambda message: True)
-        def handle_reactions(reaction: MessageReactionUpdated):
-            # Перевіряємо, чи ID повідомлення є у нашому списку "своїх"
-            if reaction.message_id in self.my_message_ids:
-                # Перевіряємо, чи це НОВА реакція (а не зняття старої)
-                if reaction.new_reaction:
-                    try:
-                        self.bot.send_message(reaction.chat.id, "Бачу реакцію на моєму повідомленні! Дякую 😎")
-                    except Exception as e:
-                        print(f"Reaction send error: {e}")
-            else:
-                print(f"Ігнорую реакцію на чуже повідомлення (ID: {reaction.message_id})")
+#        @self.bot.message_reaction_handler(func=lambda message: True)
+#        def handle_reactions(reaction: MessageReactionUpdated):
+#           # Перевіряємо, чи ID повідомлення є у нашому списку "своїх"
+#           if reaction.message_id in self.my_message_ids:
+#               # Перевіряємо, чи це НОВА реакція (а не зняття старої)
+#               if reaction.new_reaction:
+#                   try:
+#                       self.bot.send_message(reaction.chat.id, "Бачу реакцію на моєму повідомленні! Дякую 😎")
+#                    except Exception as e:
+#                       print(f"Reaction send error: {e}")
+#           else:
+#               print(f"Ігнорую реакцію на чуже повідомлення (ID: {reaction.message_id})")
 
 #    def send_daily_message(self):
 #       try:
@@ -147,4 +147,5 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
