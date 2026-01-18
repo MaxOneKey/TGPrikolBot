@@ -99,7 +99,7 @@ class MyBot:
     def __init__(self):
         self.bot = telebot.TeleBot(TOKEN)
         self.my_message_ids = []
-        schedule.every().day.at(TIME_TO_POST).do(self.send_daily_message)
+#        schedule.every().day.at(TIME_TO_POST).do(self.send_daily_message)
         self.register_handlers()
 
     def remember_message(self, sent_message):
@@ -191,4 +191,5 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
