@@ -5,12 +5,37 @@ import threading
 import os
 import requests
 import re
+import random
 from flask import Flask
 
 TOKEN = '8236217660:AAHGeDEer-h-CoJKvFwRrd6iFvFPFES6dKg'
 TARGET_CHAT_ID = -1001931356645
 VIDEO_FILE_ID = 'BAACAgIAAxkBAAMDaWKNbYKtFWObQtVrOlT4PwW4FMkAAm-WAAKFOhhL_uW0ao2rRtw4BA'
 TIME_TO_POST = "09:51"
+
+GIF_LIST = [
+    "CgACAgQAAx0Ccx4p5QABASk4aWzxsSRrcDY34MRdJ9RsqI_XIoUAArYFAAJ7uMRRcSP58pCaqwo4BA",
+    "CgACAgQAAxkBAAMfaW0gX88ZG0pTvVOTpPOvCRABJfsAArQFAALocZxQMvdQ6R_M2rI4BA",
+    "CgACAgIAAxkBAAMgaW0gX-5p75-gCoYioGrPwYK34VoAAvpVAAIk0OBIfZVWi1X6PbM4BA",
+    "CgACAgIAAxkBAAMQaW0gX4bhWHc8Xdh1bDPhWd3Bba0AAkFQAAJyS5lLqZOanPaHfQc4BA",
+    "CgACAgQAAxkBAAMRaW0gX9IhPjzZaShll7eMBxpT0QUAAq8FAAJm4RxTGDHXik6ety44BA",
+    "CgACAgQAAxkBAAMSaW0gX83p_vLsiHEDbi08NQup4oAAAr8FAALxPpRRm1E5Y3paoOc4BA",
+    "CgACAgIAAxkBAAMTaW0gX9JRBKyu-l_ltMskOpcVk-UAAi8oAAJWHMhKwQ_0RlGtudM4BA",
+    "CgACAgIAAxkBAAMUaW0gX_SFHiRowbHWMqhJUwzfq1YAAuxIAAKYOolIYDVftDvWASY4BA",
+    "CgACAgIAAxkBAAMVaW0gX97nWq6QySlVuJ7Hvu6z8DkAAhcmAALtNWlJL2Vtp5TwUbg4BA",
+    "CgACAgIAAxkBAAMWaW0gX1vKUx6uJ9BCELB2ul10LAUAAqI8AAKQxcBJaiJgtAEaRwg4BA",
+    "CgACAgIAAxkBAAMXaW0gXy2jsxTLXaVV-zzgotN6ZlkAAuRpAAIZd_lKsa3-sfYcXok4BA",
+    "CgACAgIAAxkBAAMYaW0gXzgbzI2juLcF07iTgsyDBtoAArZUAAJKH0FJVBgx_NfnN_E4BA",
+    "CgACAgQAAxkBAAMZaW0gX9fCfMZNerEZJTHKFlKGdwsAAnYPAALbSylSdKqt4ZNhaKI4BA",
+    "CgACAgIAAxkBAAMaaW0gX3sv9tKOClZhb1n5JCDx1YIAAjo1AALhy4BI3aULWbkb5HE4BA",
+    "CgACAgIAAxkBAAMbaW0gXwjDiHa_SZMsnz76W12R87oAAsE2AAKM8ZlKQlrQqClMlNM4BA",
+    "CgACAgIAAxkBAAMcaW0gX3rg0zLZK8zOA0zliNha9n8AAtpCAAJGlylLc2y9qRq3eiQ4BA",
+    "CgACAgIAAxkBAAMdaW0gXxQdiQpsZCchd9U18g5lyxgAApFQAAJ8o_hLJkeQBZi08hM4BA",
+    "CgACAgIAAxkBAAMeaW0gX9Cvq6fMWcN3m7jrVq1DCEEAAogyAAJsVolIzdiy8wABNM0iOAQ",
+    "CgACAgQAAxkBAANJaW0o-7jGS3-GvcnUE47RfoxfymsAApIDAALVZ8VTRpgDCjR8cP84BA",
+    "CgACAgIAAxkBAANIaW0o-9Kymtmzf1R_3lWlTlUlI_AAAi11AAKFAAGZSUdO8p8EdfWVOAQ",
+    "CgACAgIAAxkBAANKaW0o-zxZFiBrXWgYUBd99SBQ7eYAAnFoAAIgunBJcNMKEEfdido4BA"
+]
 
 USER_STATUSES = {
     1859027118: "Уважаємий",
@@ -27,15 +52,11 @@ class CurrencyProvider:
 
     CURRENCY_MAP = {
 
-        'usd': 'USD', '$': 'USD', 'usdt': 'USD',
-        'долар': 'USD', 'долара': 'USD', 'доларів': 'USD', 'долари': 'USD',
-        'бакс': 'USD', 'бакса': 'USD', 'баксів': 'USD', 'бакси': 'USD',
+        'usd': 'USD', '$': 'USD', 'usdt': 'USD', 'долар': 'USD', 'долара': 'USD', 'доларів': 'USD', 'долари': 'USD', 'бакс': 'USD', 'бакса': 'USD', 'баксів': 'USD', 'бакси': 'USD',
 
-        'eur': 'EUR', '€': 'EUR',
-        'євро': 'EUR', 'евро': 'EUR',
+        'eur': 'EUR', '€': 'EUR', 'євро': 'EUR', 'евро': 'EUR',
    
-        'uah': 'UAH', '₴': 'UAH',
-        'гривня': 'UAH', 'гривні': 'UAH', 'гривень': 'UAH', 'грн': 'UAH'
+        'uah': 'UAH', '₴': 'UAH', 'гривня': 'UAH', 'гривні': 'UAH', 'гривень': 'UAH', 'грн': 'UAH',
     }
 
     @staticmethod
@@ -107,9 +128,25 @@ class MyBot:
     def __init__(self):
         self.bot = telebot.TeleBot(TOKEN)
         self.my_message_ids = []
-        schedule.every().day.at(TIME_TO_POST).do(self.send_daily_message)
+#        schedule.every().day.at(TIME_TO_POST).do(self.send_daily_message)
         self.register_handlers()
 
+    def check_random_gif(self):
+        current_time = time.strftime("%H:%M")
+        
+        if current_time == self.random_gif_time:
+            self.send_random_gif()
+            self.random_gif_time = self.generate_random_time()
+            print(f"Стас буде сосати хуй в {self.random_gif_time}")
+            
+    def send_random_gif(self):
+        try:
+            gif_id = random.choice(GIF_LIST)
+            msg = self.bot.send_animation(TARGET_CHAT_ID, gif_id, caption="")
+            self.remember_message(msg)
+        except Exception as e:
+            print(f"Random Gif Error: {e}")
+            
     def remember_message(self, sent_message):
         if sent_message:
             self.my_message_ids.append(sent_message.message_id)
@@ -180,14 +217,16 @@ class MyBot:
                 status = USER_STATUSES.get(user_id, DEFAULT_STATUS)
                 msg = self.bot.send_message(chat_id, f"👤 *{name}*, статус: `{status}`", parse_mode="Markdown")
                 self.remember_message(msg)
-
-    def send_daily_message(self):
-        try:
-            msg = self.bot.send_message(TARGET_CHAT_ID, "Мері крісмас🎄👙 @Sasik0809")
-            self.remember_message(msg)
-            print("Щоденне повідомлення відправлено!")
-        except Exception as e:
-            print(f"Daily Message Error: {e}")
+                
+            if "тест гіф" in text:
+                self.send_random_gif()
+#    def send_daily_message(self):
+#       try:
+#           msg = self.bot.send_message(TARGET_CHAT_ID, "Мері крісмас🎄👙 @Sasik0809")
+#           self.remember_message(msg)
+#           print("Щоденне повідомлення відправлено!")
+#        except Exception as e:
+#           print(f"Daily Message Error: {e}")
 
     def start(self):
         self.bot.infinity_polling()
@@ -210,3 +249,4 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
