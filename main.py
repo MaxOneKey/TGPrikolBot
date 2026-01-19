@@ -131,6 +131,12 @@ class MyBot:
 #        schedule.every().day.at(TIME_TO_POST).do(self.send_daily_message)
         self.register_handlers()
 
+    def generate_random_time(self):
+        """Генерує випадковий час між 09:00 та 22:00"""
+        hour = random.randint(9, 21) 
+        minute = random.randint(0, 59)
+        return f"{hour:02d}:{minute:02d}"
+
     def check_random_gif(self):
         current_time = time.strftime("%H:%M")
         
@@ -249,4 +255,5 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
