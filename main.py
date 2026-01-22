@@ -167,7 +167,7 @@ class MyBot:
     def send_random_gif(self):
         try:
             gif_id = random.choice(GIF_LIST)
-            msg = self.bot.send_animation(TARGET_CHAT_ID, gif_id, caption="Ловіть рандомну гіфку! 🎲")
+            msg = self.bot.send_animation(TARGET_CHAT_ID, gif_id, caption="")
             self.remember_message(msg)
         except Exception as e:
             print(f"Random Gif Error: {e}")
@@ -188,7 +188,7 @@ class MyBot:
             name = message.from_user.first_name
 
             self.last_sender_id = user_id
-            print(f"✍️ ПИШЕ: {name} | ID: {user_id} | Текст: {text}")
+            print(f"ПИШЕ: {name} | ID: {user_id} | Текст: {text}")
 
             pattern = r"(\d+[.,]?\d*)\s*([а-яА-Яa-zA-Z$€]+)\s+(?:в|у|in|to)\s+([а-яА-Яa-zA-Z$€]+)"
             match = re.search(pattern, text)
@@ -276,3 +276,4 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
