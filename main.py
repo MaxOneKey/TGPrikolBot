@@ -6,11 +6,13 @@ import os
 import requests
 import re
 import random
+from datetime import datetime, timedelta
 from flask import Flask
 
 TOKEN = '8236217660:AAHGeDEer-h-CoJKvFwRrd6iFvFPFES6dKg'
 TARGET_CHAT_ID = -1001931356645
 VIDEO_FILE_ID = 'BAACAgIAAxkBAAMDaWKNbYKtFWObQtVrOlT4PwW4FMkAAm-WAAKFOhhL_uW0ao2rRtw4BA'
+OPA_VIDEO_ID = 'BAACAgIAAxkBAANOaXJ6Z11C29jVykIzNaiTCSz3rOQAAluOAAIBppFLR_s0rYZukBs4BA'
 TIME_TO_POST = "09:51"
 
 GIF_LIST = [
@@ -46,17 +48,17 @@ USER_STATUSES = {
     6676149475: "Дирявий водолаз",
     913802232: "Уважаємий",
 }
-DEFAULT_STATUS = "👤 Гість"
+DEFAULT_STATUS = "Гість"
 
 class CurrencyProvider:
-
     CURRENCY_MAP = {
-
-        'usd': 'USD', '$': 'USD', 'usdt': 'USD', 'долар': 'USD', 'долара': 'USD', 'доларів': 'USD', 'долари': 'USD', 'бакс': 'USD', 'бакса': 'USD', 'баксів': 'USD', 'бакси': 'USD',
-
-        'eur': 'EUR', '€': 'EUR', 'євро': 'EUR', 'евро': 'EUR',
-   
-        'uah': 'UAH', '₴': 'UAH', 'гривня': 'UAH', 'гривні': 'UAH', 'гривень': 'UAH', 'грн': 'UAH',
+        'usd': 'USD', '$': 'USD', 'usdt': 'USD', 'юсд': 'USD',
+        'долар': 'USD', 'долара': 'USD', 'доларів': 'USD', 'долари': 'USD',
+        'бакс': 'USD', 'бакса': 'USD', 'баксів': 'USD', 'бакси': 'USD',
+        'eur': 'EUR', '€': 'EUR', 'евро': 'EUR',
+        'євро': 'EUR', 'євра': 'EUR', 'єврів': 'EUR',
+        'uah': 'UAH', '₴': 'UAH',
+        'гривня': 'UAH', 'гривні': 'UAH', 'гривень': 'UAH', 'грн': 'UAH'
     }
 
     @staticmethod
@@ -106,20 +108,21 @@ class CurrencyProvider:
 
     @staticmethod
     def convert_currency(amount, from_curr_raw, to_curr_raw):
-        from_code = CurrencyProvider.CURRENCY_MAP.get(from_curr_raw.lower())
-        to_code = CurrencyProvider.CURRENCY_MAP.get(to_curr_raw.lower())
+        from_clean = from_curr_raw.lower().strip()
+        to_clean = to_curr_raw.lower().strip()
+        from_code = CurrencyProvider.CURRENCY_MAP.get(from_clean)
+        to_code = CurrencyProvider.CURRENCY_MAP.get(to_clean)
 
-        if not from_code or not to_code:
-            return None 
+        if not from_code: return f"🤷‍♂️ Я не знаю валюту: `{from_clean}`"
+        if not to_code: return f"🤷‍♂️ Я не знаю валюту: `{to_clean}`"
 
         nbu_data, _ = CurrencyProvider.get_data()
-        if not nbu_data: return "❌ Помилка API"
+        if not nbu_data: return "❌ Помилка API НБУ"
 
         rate_from = 1.0 if from_code == 'UAH' else next((i["rate"] for i in nbu_data if i["cc"] == from_code), None)
         rate_to = 1.0 if to_code == 'UAH' else next((i["rate"] for i in nbu_data if i["cc"] == to_code), None)
 
-        if not rate_from or not rate_to:
-            return "❌ Не знайшов курс для такої конвертації."
+        if not rate_from or not rate_to: return "❌ Не знайшов курс для такої конвертації."
 
         result = (amount * rate_from) / rate_to
         return f"💱 *Конвертація (по НБУ):*\n{amount:.2f} {from_code} = `{result:.2f} {to_code}`"
@@ -128,11 +131,19 @@ class MyBot:
     def __init__(self):
         self.bot = telebot.TeleBot(TOKEN)
         self.my_message_ids = []
+        
+        self.bot_id = int(TOKEN.split(':')[0])
+        self.last_sender_id = None
+
 #        schedule.every().day.at(TIME_TO_POST).do(self.send_daily_message)
+        
+        self.random_gif_time = self.generate_random_time()
+        print(f"Гіфка сьогодні запланована на: {self.random_gif_time}")
+        
+        schedule.every().minute.do(self.check_random_gif)
         self.register_handlers()
 
     def generate_random_time(self):
-        """Генерує випадковий час між 09:00 та 22:00"""
         hour = random.randint(9, 21) 
         minute = random.randint(0, 59)
         return f"{hour:02d}:{minute:02d}"
@@ -141,14 +152,22 @@ class MyBot:
         current_time = time.strftime("%H:%M")
         
         if current_time == self.random_gif_time:
+            if self.last_sender_id == self.bot_id:
+                print("Відкладаю гіфку.")
+                now = datetime.now()
+                future_time = now + timedelta(minutes=30)
+                self.random_gif_time = future_time.strftime("%H:%M")
+                print(f"Новий час: {self.random_gif_time}")
+                return
+
             self.send_random_gif()
             self.random_gif_time = self.generate_random_time()
-            print(f"Стас буде сосати хуй в {self.random_gif_time}")
+            print(f"Гіфка пішла! Наступна: {self.random_gif_time}")
             
     def send_random_gif(self):
         try:
             gif_id = random.choice(GIF_LIST)
-            msg = self.bot.send_animation(TARGET_CHAT_ID, gif_id, caption="")
+            msg = self.bot.send_animation(TARGET_CHAT_ID, gif_id, caption="Ловіть рандомну гіфку! 🎲")
             self.remember_message(msg)
         except Exception as e:
             print(f"Random Gif Error: {e}")
@@ -157,19 +176,20 @@ class MyBot:
         if sent_message:
             self.my_message_ids.append(sent_message.message_id)
             if len(self.my_message_ids) > 100: self.my_message_ids.pop(0)
+            self.last_sender_id = self.bot_id
 
     def register_handlers(self):
         @self.bot.message_handler(func=lambda message: True)
         def handle_text(message):
+            if not message.text: return
             text = message.text.lower()
             chat_id = message.chat.id
             user_id = message.from_user.id
             name = message.from_user.first_name
 
+            self.last_sender_id = user_id
             print(f"✍️ ПИШЕ: {name} | ID: {user_id} | Текст: {text}")
 
-            #  КОНВЕРТЕР 
-    
             pattern = r"(\d+[.,]?\d*)\s*([а-яА-Яa-zA-Z$€]+)\s+(?:в|у|in|to)\s+([а-яА-Яa-zA-Z$€]+)"
             match = re.search(pattern, text)
             
@@ -178,17 +198,18 @@ class MyBot:
                 curr_from = match.group(2)
                 curr_to = match.group(3)
                 
-                print(f"🔄 Спроба конвертації: {amount} {curr_from} -> {curr_to}")
-                
                 result_text = CurrencyProvider.convert_currency(amount, curr_from, curr_to)
                 
                 if result_text:
                     msg = self.bot.send_message(chat_id, result_text, parse_mode="Markdown")
                     self.remember_message(msg)
-                else:
-                    pass 
-                
                 return 
+
+            if re.search(r"\bопа+\b", text):
+                try:
+                    msg = self.bot.send_video(chat_id, OPA_VIDEO_ID, caption="")
+                    self.remember_message(msg)
+                except Exception as e: print(e)
 
             if text == "курс":
                 msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message(None), parse_mode="Markdown")
@@ -198,7 +219,6 @@ class MyBot:
                 msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message('USD'), parse_mode="Markdown")
                 self.remember_message(msg)
             
-
             elif text in ["eur", "євро", "euro", "€"]:
                 msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message('EUR'), parse_mode="Markdown")
                 self.remember_message(msg)
@@ -226,13 +246,14 @@ class MyBot:
                 
             if "тест гіф" in text:
                 self.send_random_gif()
+
 #    def send_daily_message(self):
-#       try:
-#           msg = self.bot.send_message(TARGET_CHAT_ID, "Мері крісмас🎄👙 @Sasik0809")
-#           self.remember_message(msg)
-#           print("Щоденне повідомлення відправлено!")
+#        try:
+#            msg = self.bot.send_message(TARGET_CHAT_ID, "Мері крісмас🎄👙 @Sasik0809")
+#            self.remember_message(msg)
+#            print("Щоденне повідомлення відправлено!")
 #        except Exception as e:
-#           print(f"Daily Message Error: {e}")
+#            print(f"Daily Message Error: {e}")
 
     def start(self):
         self.bot.infinity_polling()
@@ -255,5 +276,3 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
-
-
