@@ -36,7 +36,11 @@ GIF_LIST = [
     "CgACAgIAAxkBAAMeaW0gX9Cvq6fMWcN3m7jrVq1DCEEAAogyAAJsVolIzdiy8wABNM0iOAQ",
     "CgACAgQAAxkBAANJaW0o-7jGS3-GvcnUE47RfoxfymsAApIDAALVZ8VTRpgDCjR8cP84BA",
     "CgACAgIAAxkBAANIaW0o-9Kymtmzf1R_3lWlTlUlI_AAAi11AAKFAAGZSUdO8p8EdfWVOAQ",
-    "CgACAgIAAxkBAANKaW0o-zxZFiBrXWgYUBd99SBQ7eYAAnFoAAIgunBJcNMKEEfdido4BA"
+    "CgACAgIAAxkBAANKaW0o-zxZFiBrXWgYUBd99SBQ7eYAAnFoAAIgunBJcNMKEEfdido4BA",
+    "CgACAgIAAxkBAANPaXKIyVVu5fzgKlD6hepXM6262rgAAvuOAAIBppFLAVH5NnrLLYY4BA",
+    "CgACAgQAAxkBAANXaXKK7wABF8d67ArOZ2flbK2wIqjFAALuGwACCPYRUHtkD1Jip9UPOAQ",
+    "CgACAgIAAxkBAANbaXKMSfn2cbn2VfSwmPHwR3cQRDYAAjyPAAIBppFLSn8WcXm1NL04BA",
+    "CgACAgIAAxkBAANdaXKMWqrOafT6gnzmvM7IlUPmXh8AAj2PAAIBppFLJN0uubSIMNA4BA"
 ]
 
 STICKER_PACKS = [
@@ -286,5 +290,6 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
 
