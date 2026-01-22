@@ -39,6 +39,13 @@ GIF_LIST = [
     "CgACAgIAAxkBAANKaW0o-zxZFiBrXWgYUBd99SBQ7eYAAnFoAAIgunBJcNMKEEfdido4BA"
 ]
 
+STICKER_PACKS = [
+    "kakashkaslonareal_by_fStikBot",
+    "zalupkogeneral_by_fStikBot",
+    "Zalupines_by_fStikBot",
+    "Funny_Amaranth_Swordtail_by_fStikBot"
+]
+
 USER_STATUSES = {
     1859027118: "Уважаємий",
     1428109401: "Уважаємий",
@@ -247,6 +254,9 @@ class MyBot:
             if "тест гіф" in text:
                 self.send_random_gif()
 
+            if "стікер" in text:
+                self.send_random_sticker()
+
 #    def send_daily_message(self):
 #        try:
 #            msg = self.bot.send_message(TARGET_CHAT_ID, "Мері крісмас🎄👙 @Sasik0809")
@@ -276,4 +286,5 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
