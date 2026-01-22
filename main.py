@@ -103,12 +103,12 @@ class CurrencyProvider:
         msg = ""
         
         if target_currency == 'USD' or target_currency is None:
-            msg += (f"🇺🇸 *Долар (USD):*\n"
+            msg += (f"*Долар (USD):*\n"
                     f"🏦 НБУ: {usd_nbu:.2f} грн\n"
                     f"🏪 Приват: {usd_buy:.2f} / {usd_sale:.2f}\n\n")
 
         if target_currency == 'EUR' or target_currency is None:
-            msg += (f"🇪🇺 *Євро (EUR):*\n"
+            msg += (f"*Євро (EUR):*\n"
                     f"🏦 НБУ: {eur_nbu:.2f} грн\n"
                     f"🏪 Приват: {eur_buy:.2f} / {eur_sale:.2f}")
         
@@ -146,12 +146,16 @@ class MyBot:
         self.bot_id = int(TOKEN.split(':')[0])
         self.last_sender_id = None
 
-#        schedule.every().day.at(TIME_TO_POST).do(self.send_daily_message)
-        
         self.random_gif_time = self.generate_random_time()
-        print(f"Гіфка сьогодні запланована на: {self.random_gif_time}")
+        print(f"GIF Time: {self.random_gif_time}")
+
+        self.random_sticker_time = self.generate_random_time()
+        print(f"Sticker Time: {self.random_sticker_time}")
         
         schedule.every().minute.do(self.check_random_gif)
+        schedule.every().minute.do(self.check_random_sticker)
+#        schedule.every().day.at(TIME_TO_POST).do(self.send_daily_message)
+
         self.register_handlers()
 
     def generate_random_time(self):
@@ -164,25 +168,57 @@ class MyBot:
         
         if current_time == self.random_gif_time:
             if self.last_sender_id == self.bot_id:
-                print("Відкладаю гіфку.")
+                print("Skip GIF (Spam protection)")
                 now = datetime.now()
                 future_time = now + timedelta(minutes=30)
                 self.random_gif_time = future_time.strftime("%H:%M")
-                print(f"Новий час: {self.random_gif_time}")
+                print(f"New GIF Time: {self.random_gif_time}")
                 return
 
             self.send_random_gif()
             self.random_gif_time = self.generate_random_time()
-            print(f"Гіфка пішла! Наступна: {self.random_gif_time}")
-            
+            print(f"Next GIF: {self.random_gif_time}")
+
+    def check_random_sticker(self):
+        current_time = time.strftime("%H:%M")
+        
+        if current_time == self.random_sticker_time:
+            if self.last_sender_id == self.bot_id:
+                print("Skip Sticker (Spam protection)")
+                now = datetime.now()
+                future_time = now + timedelta(minutes=30)
+                self.random_sticker_time = future_time.strftime("%H:%M")
+                print(f"New Sticker Time: {self.random_sticker_time}")
+                return
+
+            self.send_random_sticker()
+            self.random_sticker_time = self.generate_random_time()
+            print(f"Next Sticker: {self.random_sticker_time}")
+
     def send_random_gif(self):
         try:
             gif_id = random.choice(GIF_LIST)
-            msg = self.bot.send_animation(TARGET_CHAT_ID, gif_id, caption="")
+            msg = self.bot.send_animation(TARGET_CHAT_ID, gif_id, caption="Ловіть рандомну гіфку! 🎲")
             self.remember_message(msg)
         except Exception as e:
             print(f"Random Gif Error: {e}")
+
+    def send_random_sticker(self):
+        try:
+            pack_name = random.choice(STICKER_PACKS)
+            sticker_set = self.bot.get_sticker_set(pack_name)
             
+            if sticker_set and sticker_set.stickers:
+                random_sticker = random.choice(sticker_set.stickers)
+                msg = self.bot.send_sticker(TARGET_CHAT_ID, random_sticker.file_id)
+                self.remember_message(msg)
+                print(f"Sticker sent from: {pack_name}")
+            else:
+                print(f"Pack error: {pack_name}")
+                
+        except Exception as e:
+            print(f"Sticker Error: {e}")
+
     def remember_message(self, sent_message):
         if sent_message:
             self.my_message_ids.append(sent_message.message_id)
@@ -199,18 +235,23 @@ class MyBot:
             name = message.from_user.first_name
 
             self.last_sender_id = user_id
-            print(f"ПИШЕ: {name} | ID: {user_id} | Текст: {text}")
+            print(f"User: {name} | Text: {text}")
+
+            if text == "ч г":
+                self.bot.send_message(chat_id, f"Г: {self.random_gif_time}")
+                return
+
+            if text == "ч с":
+                self.bot.send_message(chat_id, f"C: {self.random_sticker_time}")
+                return
 
             pattern = r"(\d+[.,]?\d*)\s*([а-яА-Яa-zA-Z$€]+)\s+(?:в|у|in|to)\s+([а-яА-Яa-zA-Z$€]+)"
             match = re.search(pattern, text)
-            
             if match:
                 amount = float(match.group(1).replace(',', '.'))
                 curr_from = match.group(2)
                 curr_to = match.group(3)
-                
                 result_text = CurrencyProvider.convert_currency(amount, curr_from, curr_to)
-                
                 if result_text:
                     msg = self.bot.send_message(chat_id, result_text, parse_mode="Markdown")
                     self.remember_message(msg)
@@ -225,15 +266,13 @@ class MyBot:
             if text == "курс":
                 msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message(None), parse_mode="Markdown")
                 self.remember_message(msg)
-        
             elif text in ["usd", "долар", "dollar", "$"]:
                 msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message('USD'), parse_mode="Markdown")
                 self.remember_message(msg)
-            
             elif text in ["eur", "євро", "euro", "€"]:
                 msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message('EUR'), parse_mode="Markdown")
                 self.remember_message(msg)
-                
+            
             if text in ["id", "айді", "мій id"]:
                 msg = self.bot.reply_to(message, f"🆔 Твій ID: `{user_id}`", parse_mode="Markdown")
                 self.remember_message(msg)
@@ -254,10 +293,9 @@ class MyBot:
                 status = USER_STATUSES.get(user_id, DEFAULT_STATUS)
                 msg = self.bot.send_message(chat_id, f"👤 *{name}*, статус: `{status}`", parse_mode="Markdown")
                 self.remember_message(msg)
-                
+            
             if "тест гіф" in text:
                 self.send_random_gif()
-
             if "стікер" in text:
                 self.send_random_sticker()
 
@@ -265,7 +303,7 @@ class MyBot:
 #        try:
 #            msg = self.bot.send_message(TARGET_CHAT_ID, "Мері крісмас🎄👙 @Sasik0809")
 #            self.remember_message(msg)
-#            print("Щоденне повідомлення відправлено!")
+#            print("Daily message sent")
 #        except Exception as e:
 #            print(f"Daily Message Error: {e}")
 
@@ -290,6 +328,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
 
 
