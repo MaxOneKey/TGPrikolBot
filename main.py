@@ -273,7 +273,7 @@ class MyBot:
                 else:
                     comment = "ЄБАТЬ БРАТОК ЦЕ ШО ЗА БАШНЯ🤯🤯🤯"
 
-                msg = self.bot.send_message(chat_id, f"👤 {name}, твоє число: {random_num}\n💬 {comment}")
+                msg = self.bot.send_message(chat_id, f"👨🏿 {name}, твій хуй: {random_num}\n {comment} см")
                 self.remember_message(msg)
                 
                 self.number_cooldowns[user_id] = now
@@ -370,6 +370,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
 
 
