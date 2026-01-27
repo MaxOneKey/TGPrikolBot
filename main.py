@@ -142,8 +142,10 @@ class MyBot:
     def __init__(self):
         self.bot = telebot.TeleBot(TOKEN)
         self.my_message_ids = []
+
+        self.number_cooldowns = {} #рандом число
         
-        self.bot_id = int(TOKEN.split(':')[0])
+        self.bot_id = int(TOKEN.split(':')[0]) 
         self.last_sender_id = None
 
         self.random_gif_time = self.generate_random_time()
@@ -198,7 +200,7 @@ class MyBot:
     def send_random_gif(self):
         try:
             gif_id = random.choice(GIF_LIST)
-            msg = self.bot.send_animation(TARGET_CHAT_ID, gif_id, caption="Ловіть рандомну гіфку! 🎲")
+            msg = self.bot.send_animation(TARGET_CHAT_ID, gif_id, caption="")
             self.remember_message(msg)
         except Exception as e:
             print(f"Random Gif Error: {e}")
@@ -237,6 +239,46 @@ class MyBot:
             self.last_sender_id = user_id
             print(f"User: {name} | Text: {text}")
 
+            if text == "хуй":
+            now = datetime.now()
+                last_used = self.number_cooldowns.get(user_id)
+
+                if last_used and now - last_used < timedelta(hours=12):
+                    remaining = timedelta(hours=12) - (now - last_used)
+                    hours, remainder = divmod(remaining.seconds, 3600)
+                    minutes, _ = divmod(remainder, 60)
+                    msg = self.bot.send_message(chat_id, f"Блять ти шо вобще? Время ше не пройшло, подожди ше {hours} год {minutes} хв.")
+                    self.remember_message(msg)
+                    return
+
+                random_num = round(random.uniform(-30.0, 200.0), 1)
+                
+                comment = ""
+                if random_num < 0:
+                    comment = "Хуй в жопі, пітушара блять🥶"
+                elif random_num == 0:
+                    comment = "🫤"
+                elif 0.1 <= random_num <= 1.0:
+                    comment = "Ахаха лох єбаний🤣"
+                elif 1.1 <= random_num <= 5.0:
+                    comment = "Ну парінь це якось не серйозно😒"
+                elif 5.1 <= random_num <= 10.0:
+                    comment = "Ніплох"
+                elif 10.1 <= random_num <= 20.0:
+                    comment = "Нармалди😎"
+                elif 20.1 <= random_num <= 30.0:
+                    comment = "Оце болтяра😯"
+                elif 30.1 <= random_num <= 50.0:
+                    comment = "Вотетаніхуясібє😨"
+                else:
+                    comment = "ЄБАТЬ БРАТОК ЦЕ ШО ЗА БАШНЯ🤯🤯🤯"
+
+                msg = self.bot.send_message(chat_id, f"👤 {name}, твоє число: {random_num}\n💬 {comment}")
+                self.remember_message(msg)
+                
+                self.number_cooldowns[user_id] = now
+                return
+
             if text == "ч г":
                 self.bot.send_message(chat_id, f"Г: {self.random_gif_time}")
                 return
@@ -274,7 +316,7 @@ class MyBot:
                 self.remember_message(msg)
             
             if text in ["id", "айді", "мій id"]:
-                msg = self.bot.reply_to(message, f"🆔 Твій ID: `{user_id}`", parse_mode="Markdown")
+                msg = self.bot.reply_to(message, f"Твій ID: `{user_id}`", parse_mode="Markdown")
                 self.remember_message(msg)
 
             if "мері крісмас" in text:
@@ -294,7 +336,7 @@ class MyBot:
                 msg = self.bot.send_message(chat_id, f"👤 *{name}*, статус: `{status}`", parse_mode="Markdown")
                 self.remember_message(msg)
             
-            if "тест гіф" in text:
+            if "гіф" in text:
                 self.send_random_gif()
             if "стікер" in text:
                 self.send_random_sticker()
@@ -328,6 +370,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
 
 
