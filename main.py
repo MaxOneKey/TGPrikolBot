@@ -161,7 +161,7 @@ class MyBot:
         self.register_handlers()
 
     def generate_random_time(self):
-        hour = random.randint(9, 21) 
+        hour = random.randint(10, 21) 
         minute = random.randint(0, 59)
         return f"{hour:02d}:{minute:02d}"
 
@@ -240,7 +240,7 @@ class MyBot:
             print(f"User: {name} | Text: {text}")
 
             if text == "хуй":
-            now = datetime.now()
+                now = datetime.now()
                 last_used = self.number_cooldowns.get(user_id)
 
                 if last_used and now - last_used < timedelta(hours=12):
@@ -370,6 +370,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
 
 
