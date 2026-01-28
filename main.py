@@ -251,7 +251,7 @@ class MyBot:
                     self.remember_message(msg)
                     return
 
-                random_num = round(random.uniform(-30.0, 200.0), 1)
+                random_num = round(random.uniform(-30.0, 40.0), 1)
                 
                 comment = ""
                 if random_num < 0:
@@ -264,16 +264,14 @@ class MyBot:
                     comment = "Ну парінь це якось не серйозно😒"
                 elif 5.1 <= random_num <= 10.0:
                     comment = "Ніплох"
-                elif 10.1 <= random_num <= 20.0:
+                elif 10.1 <= random_num <= 17.0:
                     comment = "Нармалди😎"
-                elif 20.1 <= random_num <= 30.0:
+                elif 17.1 <= random_num <= 30.0:
                     comment = "Оце болтяра😯"
                 elif 30.1 <= random_num <= 50.0:
                     comment = "Вотетаніхуясібє😨"
-                else:
-                    comment = "ЄБАТЬ БРАТОК ЦЕ ШО ЗА БАШНЯ🤯🤯🤯"
 
-                msg = self.bot.send_message(chat_id, f"👨🏿 {name}, твій хуй: {random_num}\n {comment} см")
+                msg = self.bot.send_message(chat_id, f"👨🏿 {name}, твій хуй: {random_num} см\n {comment} ")
                 self.remember_message(msg)
                 
                 self.number_cooldowns[user_id] = now
@@ -370,6 +368,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
 
 
