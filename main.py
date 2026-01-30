@@ -40,7 +40,16 @@ GIF_LIST = [
     "CgACAgIAAxkBAANPaXKIyVVu5fzgKlD6hepXM6262rgAAvuOAAIBppFLAVH5NnrLLYY4BA",
     "CgACAgQAAxkBAANXaXKK7wABF8d67ArOZ2flbK2wIqjFAALuGwACCPYRUHtkD1Jip9UPOAQ",
     "CgACAgIAAxkBAANbaXKMSfn2cbn2VfSwmPHwR3cQRDYAAjyPAAIBppFLSn8WcXm1NL04BA",
-    "CgACAgIAAxkBAANdaXKMWqrOafT6gnzmvM7IlUPmXh8AAj2PAAIBppFLJN0uubSIMNA4BA"
+    "CgACAgIAAxkBAANdaXKMWqrOafT6gnzmvM7IlUPmXh8AAj2PAAIBppFLJN0uubSIMNA4BA",
+    "CgACAgIAAxkBAANfaXyf6papK7I6jot-6f9PYUxcFFMAAp6UAALgDehLrUWpmO71m3o4BA",
+    "CgACAgIAAxkBAANhaXyglzM2it7xMGzUIpKf5iP_aIUAAqKUAALgDehLPKn2RPGjtnc4BA",
+    "CgACAgIAAxkBAANjaXygoxQpTn8D8Ax6vum8UrrOoSAAAqOUAALgDehLZZmUAAFzpL5TOAQ",
+    "CgACAgIAAxkBAANlaXyhGPv_BdLRQRU2OrurTeI2XB4AAqyUAALgDehL_prUtmmDsmg4BA",
+    "CgACAgIAAxkBAANnaXyhJT5cvtzwU-2-DB_QQPvpZeEAAq6UAALgDehLkr8LBsl1tyo4BA",
+    "CgACAgIAAxkBAANpaXyhLcsxQKDO7Oe8peT9lnjsDCUAArCUAALgDehLY9Dw2087sUk4BA",
+    "CgACAgIAAxkBAANraXyhRINOgmOoXdAumhGJ_iqVOtIAArKUAALgDehLLgtB885qkkY4BA",
+    "CgACAgIAAxkBAANvaXyh2ZvJg6AMk1hizoQC_6_saGYAAsOUAALgDehLh7QPioLJQkU4BA",
+    "CgACAgIAAxkBAANtaXyhosiVtS_OI8oZwwAB7LrU3BAWAAK-lAAC4A3oS7JJ0RnqKnikOAQ"
 ]
 
 STICKER_PACKS = [
@@ -368,6 +377,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
 
 
