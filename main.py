@@ -14,6 +14,7 @@ TARGET_CHAT_ID = -1001931356645
 VIDEO_FILE_ID = 'BAACAgIAAxkBAAMDaWKNbYKtFWObQtVrOlT4PwW4FMkAAm-WAAKFOhhL_uW0ao2rRtw4BA'
 OPA_VIDEO_ID = 'BAACAgIAAxkBAANOaXJ6Z11C29jVykIzNaiTCSz3rOQAAluOAAIBppFLR_s0rYZukBs4BA'
 TIME_TO_POST = "09:51"
+GARCA_FILE_ID = 'CgACAgIAAx0Ccx4p5QABATFBaXopjS6de84erk1TiiXSAiy1iW4AAvVpAAKTMxFJAn_5FWa31_A4BA'
 
 GIF_LIST = [
     "CgACAgQAAx0Ccx4p5QABASk4aWzxsSRrcDY34MRdJ9RsqI_XIoUAArYFAAJ7uMRRcSP58pCaqwo4BA",
@@ -348,6 +349,14 @@ class MyBot:
             if "стікер" in text:
                 self.send_random_sticker()
 
+            if "нігер" in text:
+                try:
+                    msg1 = self.bot.send_message(chat_id, "‼️😡⚠️NIGGER DETECTED⚠️😡‼️")
+                    self.remember_message(msg1)
+                    msg2 = self.bot.send_video(chat_id, GARCA_FILE_ID, caption="")
+                    self.remember_message(msg2)
+                except Exception as e: print(e)
+
 #    def send_daily_message(self):
 #        try:
 #            msg = self.bot.send_message(TARGET_CHAT_ID, "Мері крісмас🎄👙 @Sasik0809")
@@ -377,6 +386,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
 
 
