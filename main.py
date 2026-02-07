@@ -50,7 +50,13 @@ GIF_LIST = [
     "CgACAgIAAxkBAANpaXyhLcsxQKDO7Oe8peT9lnjsDCUAArCUAALgDehLY9Dw2087sUk4BA",
     "CgACAgIAAxkBAANraXyhRINOgmOoXdAumhGJ_iqVOtIAArKUAALgDehLLgtB885qkkY4BA",
     "CgACAgIAAxkBAANvaXyh2ZvJg6AMk1hizoQC_6_saGYAAsOUAALgDehLh7QPioLJQkU4BA",
-    "CgACAgIAAxkBAANtaXyhosiVtS_OI8oZwwAB7LrU3BAWAAK-lAAC4A3oS7JJ0RnqKnikOAQ"
+    "CgACAgIAAxkBAANtaXyhosiVtS_OI8oZwwAB7LrU3BAWAAK-lAAC4A3oS7JJ0RnqKnikOAQ",
+    "CgACAgIAAxkBAAN5aYenLyrPsB1Rb87pHVimX_Q7SkAAAoeIAAI_dkFIxiJ8NqQNx_g6BA",
+    "CgACAgIAAxkBAAN4aYenL8jvoIGeESWfgfpjIfCjyLQAAoaIAAI_dkFIJnbt8_xylNg6BA",
+    "CgACAgIAAxkBAAN6aYenL_5SxbIJnfGPMoN0HchWD88AAo6IAAI_dkFIJLEAAYjGr5FXOgQ",
+    "CgACAgIAAxkBAAN7aYenL1gi7luwYC4aCAXUs-3h6YgAApOIAAI_dkFItXc07hVB_zM6BA",
+    "CgACAgIAAxkBAAN8aYenL-9L2cNZUl5MPTlr5YwslOkAAu6IAAI_dkFI3KepUUmU8dc6BA",
+    "CgACAgIAAxkBAAN3aYenFeB4VTlc4yPHPYkiXRc-rQkAAqeIAAJdiUFIaPn58Xnzt9U6BA"
 ]
 
 STICKER_PACKS = [
@@ -165,7 +171,7 @@ class MyBot:
         print(f"Sticker Time: {self.random_sticker_time}")
         
         schedule.every().minute.do(self.check_random_gif)
-        schedule.every().minute.do(self.check_random_sticker)
+#        schedule.every().minute.do(self.check_random_sticker)
 #        schedule.every().day.at(TIME_TO_POST).do(self.send_daily_message)
 
         self.register_handlers()
@@ -346,6 +352,7 @@ class MyBot:
             
             if "гіф" in text:
                 self.send_random_gif()
+                
             if "стікер" in text:
                 self.send_random_sticker()
 
@@ -386,6 +393,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
 
 
