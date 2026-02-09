@@ -140,8 +140,8 @@ class CurrencyProvider:
         from_code = CurrencyProvider.CURRENCY_MAP.get(from_clean)
         to_code = CurrencyProvider.CURRENCY_MAP.get(to_clean)
 
-        if not from_code: return f"🤷‍♂️ Я не знаю валюту: `{from_clean}`"
-        if not to_code: return f"🤷‍♂️ Я не знаю валюту: `{to_clean}`"
+        if not from_code: return f"Залупагриз"
+        if not to_code: return f"Жирний"
 
         nbu_data, _ = CurrencyProvider.get_data()
         if not nbu_data: return "❌ Помилка API НБУ"
@@ -393,6 +393,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
 
 
