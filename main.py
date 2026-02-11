@@ -65,6 +65,7 @@ STICKER_PACKS = [
     "Zalupines_by_fStikBot",
     "Funny_Amaranth_Swordtail_by_fStikBot"
     "gandomikupidoni_by_fStikBot"
+    "Foolish_Apricot_Panther_by_fStikBot"
 ]
 
 USER_STATUSES = {
@@ -394,6 +395,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
 
 
