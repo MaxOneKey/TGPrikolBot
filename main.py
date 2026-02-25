@@ -56,7 +56,11 @@ GIF_LIST = [
     "CgACAgIAAxkBAAN6aYenL_5SxbIJnfGPMoN0HchWD88AAo6IAAI_dkFIJLEAAYjGr5FXOgQ",
     "CgACAgIAAxkBAAN7aYenL1gi7luwYC4aCAXUs-3h6YgAApOIAAI_dkFItXc07hVB_zM6BA",
     "CgACAgIAAxkBAAN8aYenL-9L2cNZUl5MPTlr5YwslOkAAu6IAAI_dkFI3KepUUmU8dc6BA",
-    "CgACAgIAAxkBAAN3aYenFeB4VTlc4yPHPYkiXRc-rQkAAqeIAAJdiUFIaPn58Xnzt9U6BA"
+    "CgACAgIAAxkBAAN3aYenFeB4VTlc4yPHPYkiXRc-rQkAAqeIAAJdiUFIaPn58Xnzt9U6BA",
+    "CgACAgIAAx0Ccx4p5QABAULkaZMHaXV3q246Uxxx3GqmfPgEO1AAAvUNAAI5sRlJR8Y-utSZ3HY6BA",
+    "CgACAgQAAxkBAAOKaZ9VzXp1fLqxAj5YWfv8JUgPTpoAAi4MAAKuzxFTGtyGB5atVwQ6BA",
+    "CgACAgIAAx0Ccx4p5QABAT1YaYyyhzWNBY1C8-U4A5_t4GlvHvoAAoORAAKef2BIh3jeNw68ha46BA",
+    "CgACAgIAAx0Ccx4p5QABAUUKaZQ3hAghcCt29SD7GjXWcyCAg-EAAqZjAAIz49BIwKDUU67Oo0M6BA"
 ]
 
 STICKER_PACKS = [
@@ -215,7 +219,17 @@ class MyBot:
             self.random_sticker_time = self.generate_random_time()
             print(f"Next Sticker: {self.random_sticker_time}")
 
-    def send_random_gif(self):
+    def send_random_gif(self, chat_id=None):
+        target = chat_id if chat_id else TARGET_CHAT_ID
+        
+        try:
+            gif_id = random.choice(GIF_LIST)
+            msg = self.bot.send_animation(target, gif_id, caption="")
+            self.remember_message(msg)
+        except Exception as e:
+            print(f"Random Gif Error: {e}")
+            
+    def send_secret_gif(self):
         try:
             gif_id = random.choice(GIF_LIST)
             msg = self.bot.send_animation(TARGET_CHAT_ID, gif_id, caption="")
@@ -223,22 +237,23 @@ class MyBot:
         except Exception as e:
             print(f"Random Gif Error: {e}")
 
-    def send_random_sticker(self):
+    def send_random_sticker(self, chat_id=None):
+        target = chat_id if chat_id else TARGET_CHAT_ID
+        
         try:
             pack_name = random.choice(STICKER_PACKS)
             sticker_set = self.bot.get_sticker_set(pack_name)
             
             if sticker_set and sticker_set.stickers:
                 random_sticker = random.choice(sticker_set.stickers)
-                msg = self.bot.send_sticker(TARGET_CHAT_ID, random_sticker.file_id)
+                msg = self.bot.send_sticker(target, random_sticker.file_id)
                 self.remember_message(msg)
-                print(f"Sticker sent from: {pack_name}")
+                print(f"Sticker sent to {target} from: {pack_name}")
             else:
                 print(f"Pack error: {pack_name}")
                 
         except Exception as e:
             print(f"Sticker Error: {e}")
-
     def remember_message(self, sent_message):
         if sent_message:
             self.my_message_ids.append(sent_message.message_id)
@@ -273,21 +288,21 @@ class MyBot:
                 
                 comment = ""
                 if random_num < 0:
-                    comment = "Хуй в жопі, пітушара блять🥶"
+                    comment = "Хуй залєз в сракатан, пітушара блять🥶"
                 elif random_num == 0:
-                    comment = "🫤"
+                    comment = "Ну піздец🫤"
                 elif 0.1 <= random_num <= 1.0:
-                    comment = "Ахаха лох єбаний🤣"
+                    comment = "Так називаємий грібочік🤣"
                 elif 1.1 <= random_num <= 5.0:
-                    comment = "Ну парінь це якось не серйозно😒"
+                    comment = "Ну тут нічим гордитися😒"
                 elif 5.1 <= random_num <= 10.0:
-                    comment = "Ніплох"
+                    comment = "Стручок😐"
                 elif 10.1 <= random_num <= 17.0:
                     comment = "Нармалди😎"
                 elif 17.1 <= random_num <= 30.0:
-                    comment = "Оце болтяра😯"
+                    comment = "Вотета хуяка😯"
                 elif 30.1 <= random_num <= 50.0:
-                    comment = "Вотетаніхуясібє😨"
+                    comment = "Юрок ти как с таким ходіш😨"
 
                 msg = self.bot.send_message(chat_id, f"👨🏿 {name}, твій хуй: {random_num} см\n {comment} ")
                 self.remember_message(msg)
@@ -353,10 +368,13 @@ class MyBot:
                 self.remember_message(msg)
             
             if "гіф" in text:
-                self.send_random_gif()
+                self.send_random_gif(chat_id=chat_id)
+
+            if "yeban" in text:
+                self.send_secret_gif()
                 
             if "стікер" in text:
-                self.send_random_sticker()
+                self.send_random_sticker(chat_id=chat_id)
 
             if "нігер" in text:
                 try:
@@ -395,6 +413,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
 
 
