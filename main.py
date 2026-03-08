@@ -284,7 +284,7 @@ class MyBot:
                     self.remember_message(msg)
                     return
 
-                random_num = round(random.uniform(-30.0, 40.0), 1)
+                random_num = round(random.uniform(-30.0, 0.0), 1)
                 
                 comment = ""
                 if random_num < 0:
@@ -413,6 +413,7 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
+
 
 
 
