@@ -8,6 +8,7 @@ import re
 import random
 from datetime import datetime, timedelta
 from flask import Flask
+from telebot import types
 
 TOKEN = '8236217660:AAHGeDEer-h-CoJKvFwRrd6iFvFPFES6dKg'
 TARGET_CHAT_ID = -1001931356645
@@ -383,7 +384,39 @@ class MyBot:
                     msg2 = self.bot.send_video(chat_id, GARCA_FILE_ID, caption="")
                     self.remember_message(msg2)
                 except Exception as e: print(e)
+                    
+    @self.bot.inline_handler(func=lambda query: len(query.query.strip()) > 1)
+        def handle_inline_stickers(inline_query):
+            search_term = inline_query.query.lower().strip()
+            
+            mock_tags_db = {
+                "опа": ["CAACAgIAAxkBAAE..._тут_має_бути_реальний_id_стікера"], 
+                "мем": ["CAACAgIAAxkBAAE..._інший_id_стікера"],
+                "сосав": ["CAACAgIAAxkBAAE..._ще_один_id"]
+            }
 
+            matched_file_ids = []
+            for tag, file_ids in mock_tags_db.items():
+                if search_term in tag: 
+                    matched_file_ids.extend(file_ids)
+
+            if not matched_file_ids:
+                return
+
+            results = []
+            for idx, file_id in enumerate(set(matched_file_ids)): 
+                results.append(
+                    types.InlineQueryResultCachedSticker(
+                        id=str(idx),
+                        sticker_file_id=file_id
+                    )
+                )
+
+            try:
+                self.bot.answer_inline_query(inline_query.id, results, cache_time=1, is_personal=True)
+            except Exception as e:
+                print(f"Inline Query Error: {e}")
+                
 #    def send_daily_message(self):
 #        try:
 #            msg = self.bot.send_message(TARGET_CHAT_ID, "Мері крісмас🎄👙 @Sasik0809")
