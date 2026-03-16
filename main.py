@@ -263,6 +263,7 @@ class MyBot:
             self.last_sender_id = self.bot_id
 
     def register_handlers(self):
+
         @self.bot.message_handler(func=lambda message: True)
         def handle_text(message):
             if not message.text: return
@@ -444,7 +445,7 @@ class MyBot:
 #            print(f"Daily Message Error: {e}")
 
     def start(self):
-        self.bot.infinity_polling()
+        self.bot.infinity_polling(allowed_updates=['message', 'inline_query'])
 
 app = Flask(__name__)
 @app.route('/')
