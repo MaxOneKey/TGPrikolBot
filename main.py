@@ -388,8 +388,10 @@ class MyBot:
                     
         @self.bot.inline_handler(func=lambda query: len(query.query.strip()) > 1)
         def handle_inline_stickers(inline_query):
+            print(f"ІНЛАЙН_ЗАПИТ: '{inline_query.query}'") 
+            
             search_term = inline_query.query.lower().strip()
-
+            
             if search_term == "тест":
                 try:
                     fallback_result = types.InlineQueryResultCachedSticker(
