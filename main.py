@@ -389,9 +389,24 @@ class MyBot:
         @self.bot.inline_handler(func=lambda query: len(query.query.strip()) > 1)
         def handle_inline_stickers(inline_query):
             search_term = inline_query.query.lower().strip()
-            
+
+            if search_term == "тест":
+                try:
+                    fallback_result = types.InlineQueryResultCachedSticker(
+                        id="100_percent_test",
+                        sticker_file_id="CAACAgQAAxkBAAMRaW0gX9IhPjzZaShll7eMBxpT0QUAAq8FAAJm4RxTGDHXik6ety44BA"
+                    )
+                    self.bot.answer_inline_query(inline_query.id, [fallback_result], cache_time=1, is_personal=True)
+                    return 
+                except Exception as e:
+                    print(f"Test Fallback Error: {e}")
+                    return
+                    
             try:
-                conn = sqlite3.connect('stickers.db')
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                db_path = os.path.join(current_dir, 'stickers.db')
+                
+                conn = sqlite3.connect(db_path)
                 c = conn.cursor()
                 
                 c.execute("SELECT file_id FROM tags WHERE tag LIKE ?", (f'%{search_term}%',))
