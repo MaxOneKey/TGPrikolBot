@@ -75,15 +75,17 @@ STICKER_PACKS = [
 ]
 
 USER_STATUSES = {
-    1859027118: "Уважаємий",
+    1859027118: "Покровітєль водолаза",
     1428109401: "Уважаємий",
     1809715140: "Уважаємий",
     1360063280: "Уважаємий",
     994207641: "Уважаємий",
     6676149475: "Дирявий водолаз",
-    913802232: "Уважаємий",
+    913802232: "Покровітєль водолаза",
 }
 DEFAULT_STATUS = "Гість"
+
+ADMIN_IDS = [1859027118, 913802232] 
 
 class CurrencyProvider:
     CURRENCY_MAP = {
@@ -275,7 +277,7 @@ class MyBot:
             self.last_sender_id = user_id
             print(f"User: {name} | Text: {text}")
 
-            if text == "хуй":
+            if text == "F0XYZPORN0RESTRICTED":
                 now = datetime.now()
                 last_used = self.number_cooldowns.get(user_id)
 
@@ -416,9 +418,9 @@ class MyBot:
                 rows = c.fetchall()
                 conn.close()
                 
-                if not rows:
+            if not rows:
                     return 
-
+        
                 matched_file_ids = [row[0] for row in rows]
                 
                 results = []
@@ -435,14 +437,74 @@ class MyBot:
                 
             except Exception as e:
                 print(f"Inline Query Error (DB): {e}")
+
+
+        @self.bot.message_handler(commands=['add', 'del', 'edit'])
+        def admin_commands(message):
+            if message.from_user.id not in ADMIN_IDS:
+                return 
+
+            command = message.text.split()[0]
+            msg = self.bot.send_message(message.chat.id, "Стікер?")
+            self.bot.register_next_step_handler(msg, process_sticker_step, command)
+
+        def process_sticker_step(message, command):
+            if message.content_type != 'sticker':
+                self.bot.send_message(message.chat.id, "Не стікер. Всьо скасовано.")
+                return
+
+            file_id = message.sticker.file_id
+            
+            if command == '/add':
+                text_prompt = "Введи тег(и) для ДОДАВАННЯ (декілька - через кому):"
+            elif command == '/del':
+                text_prompt = "Введи тег(и) для ВИДАЛЕННЯ (через кому),\nАБО напишіть слово 'все', щоб повністю видалити цей стікер з бази:"
+            elif command == '/edit':
+                text_prompt = "Введи НОВІ теги для цього стікера (всі старі будуть стерті, вводь через кому):"
+
+            msg = self.bot.send_message(message.chat.id, text_prompt)
+            self.bot.register_next_step_handler(msg, process_tags_step, command, file_id)
+
+        def process_tags_step(message, command, file_id):
+            if message.content_type != 'text':
+                self.bot.send_message(message.chat.id, "❌ Потрібен текст. Операцію скасовано.")
+                return
                 
-#    def send_daily_message(self):
-#        try:
-#            msg = self.bot.send_message(TARGET_CHAT_ID, "Мері крісмас🎄👙 @Sasik0809")
-#            self.remember_message(msg)
-#            print("Daily message sent")
-#        except Exception as e:
-#            print(f"Daily Message Error: {e}")
+            tags = [t.strip().lower() for t in message.text.split(',') if t.strip()]
+            user_text = message.text.lower().strip()
+            
+            try:
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                db_path = os.path.join(current_dir, 'stickers.db')
+                conn = sqlite3.connect(db_path)
+                c = conn.cursor()
+
+                if command == '/add':
+                    for tag in tags:
+                        c.execute("INSERT INTO tags (tag, file_id) VALUES (?, ?)", (tag, file_id))
+                    self.bot.send_message(message.chat.id, f"Додано нові теги: {', '.join(tags)}")
+
+                elif command == '/del':
+                    if user_text == 'все':
+                        c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
+                        self.bot.send_message(message.chat.id, "Стікер(немає ключів) та всі його теги видалено.")
+                    else:
+                        for tag in tags:
+                            c.execute("DELETE FROM tags WHERE file_id = ? AND tag = ?", (file_id, tag))
+                        self.bot.send_message(message.chat.id, f"Видалено теги: {', '.join(tags)}")
+
+                elif command == '/edit':
+                    c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
+                    for tag in tags:
+                        c.execute("INSERT INTO tags (tag, file_id) VALUES (?, ?)", (tag, file_id))
+                    self.bot.send_message(message.chat.id, f"Теги стікера успішно змінено на: {', '.join(tags)}")
+
+                conn.commit()
+                conn.close()
+
+            except Exception as e:
+                self.bot.send_message(message.chat.id, f"❌ Помилка бази даних: {e}")
+
 
     def start(self):
         self.bot.infinity_polling(allowed_updates=['message', 'inline_query'])
@@ -465,19 +527,6 @@ if __name__ == "__main__":
     threading.Thread(target=run_scheduler).start()
     threading.Thread(target=my_bot.start).start()
     run_flask()
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
