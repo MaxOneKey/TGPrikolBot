@@ -287,7 +287,7 @@ class MyBot:
                 text_prompt = "Введи тег(и) для ВИДАЛЕННЯ (через кому),\nАБО напиши слово 'все', щоб повністю видалити цей стікер з бази:"
             elif command == '/edit':
                 text_prompt = "Введи НОВІ теги для цього стікера (всі старі будуть стерті, вводь через кому):"
-            elif command == '/view':
+            elif command == '/look':
                 text_prompt = "Напиши любу букву(кастильменіпіхуй)"
 
             msg = self.bot.send_message(message.chat.id, text_prompt)
