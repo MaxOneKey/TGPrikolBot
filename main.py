@@ -418,7 +418,7 @@ class MyBot:
                 rows = c.fetchall()
                 conn.close()
                 
-            if not rows:
+                if not rows:
                     return 
         
                 matched_file_ids = [row[0] for row in rows]
@@ -467,7 +467,7 @@ class MyBot:
 
         def process_tags_step(message, command, file_id):
             if message.content_type != 'text':
-                self.bot.send_message(message.chat.id, "❌ Потрібен текст. Операцію скасовано.")
+                self.bot.send_message(message.chat.id, "Треба текст. Операцію скасовано.")
                 return
                 
             tags = [t.strip().lower() for t in message.text.split(',') if t.strip()]
@@ -487,7 +487,7 @@ class MyBot:
                 elif command == '/del':
                     if user_text == 'все':
                         c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
-                        self.bot.send_message(message.chat.id, "Стікер(немає ключів) та всі його теги видалено.")
+                        self.bot.send_message(message.chat.id, "Стікер(бо немає тегів) та всі його теги видалено з бази.")
                     else:
                         for tag in tags:
                             c.execute("DELETE FROM tags WHERE file_id = ? AND tag = ?", (file_id, tag))
@@ -497,13 +497,13 @@ class MyBot:
                     c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
                     for tag in tags:
                         c.execute("INSERT INTO tags (tag, file_id) VALUES (?, ?)", (tag, file_id))
-                    self.bot.send_message(message.chat.id, f"Теги стікера успішно змінено на: {', '.join(tags)}")
+                    self.bot.send_message(message.chat.id, f"Теги стікера змінено на: {', '.join(tags)}")
 
                 conn.commit()
                 conn.close()
 
             except Exception as e:
-                self.bot.send_message(message.chat.id, f"❌ Помилка бази даних: {e}")
+                self.bot.send_message(message.chat.id, f"Помилка бази даних: {e}")
 
 
     def start(self):
