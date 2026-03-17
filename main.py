@@ -265,7 +265,83 @@ class MyBot:
             self.last_sender_id = self.bot_id
 
     def register_handlers(self):
+        @self.bot.message_handler(commands=['add', 'del', 'edit', 'look'])
+        def admin_commands(message):
+            if message.from_user.id not in ADMIN_IDS:
+                return 
 
+            command = message.text.split()[0]
+            msg = self.bot.send_message(message.chat.id, "Стікер?")
+            self.bot.register_next_step_handler(msg, process_sticker_step, command)
+
+        def process_sticker_step(message, command):
+            if message.content_type != 'sticker':
+                self.bot.send_message(message.chat.id, "Не стікер. Всьо скасовано.")
+                return
+
+            file_id = message.sticker.file_id
+            
+            if command == '/add':
+                text_prompt = "Введи тег(и) для ДОДАВАННЯ (декілька - через кому):"
+            elif command == '/del':
+                text_prompt = "Введи тег(и) для ВИДАЛЕННЯ (через кому),\nАБО напиши слово 'все', щоб повністю видалити цей стікер з бази:"
+            elif command == '/edit':
+                text_prompt = "Введи НОВІ теги для цього стікера (всі старі будуть стерті, вводь через кому):"
+            elif command == '/view':
+                text_prompt = "Напиши любу букву(кастильменіпіхуй)"
+
+            msg = self.bot.send_message(message.chat.id, text_prompt)
+            self.bot.register_next_step_handler(msg, process_tags_step, command, file_id)
+
+        def process_tags_step(message, command, file_id):
+            if message.content_type != 'text':
+                self.bot.send_message(message.chat.id, "Треба текст. Операцію скасовано.")
+                return
+                
+            tags = [t.strip().lower() for t in message.text.split(',') if t.strip()]
+            user_text = message.text.lower().strip()
+            
+            try:
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                db_path = os.path.join(current_dir, 'stickers.db')
+                conn = sqlite3.connect(db_path)
+                c = conn.cursor()
+
+                if command == '/add':
+                    for tag in tags:
+                        c.execute("INSERT INTO tags (tag, file_id) VALUES (?, ?)", (tag, file_id))
+                    self.bot.send_message(message.chat.id, f"Додано нові теги: {', '.join(tags)}")
+
+                elif command == '/del':
+                    if user_text == 'все':
+                        c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
+                        self.bot.send_message(message.chat.id, "Стікер(бо немає тегів) та всі його теги видалено з бази.")
+                    else:
+                        for tag in tags:
+                            c.execute("DELETE FROM tags WHERE file_id = ? AND tag = ?", (file_id, tag))
+                        self.bot.send_message(message.chat.id, f"Видалено теги: {', '.join(tags)}")
+
+                elif command == '/edit':
+                    c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
+                    for tag in tags:
+                        c.execute("INSERT INTO tags (tag, file_id) VALUES (?, ?)", (tag, file_id))
+                    self.bot.send_message(message.chat.id, f"Теги стікера змінено на: {', '.join(tags)}")
+
+                elif command == '/look':
+                    c.execute("SELECT tag FROM tags WHERE file_id = ?", (file_id,))
+                    rows = c.fetchall()
+                    if rows:
+                        tags_list = ", ".join([row[0] for row in rows])
+                        self.bot.send_message(message.chat.id, f"Теги стікера:\n{tags_list}")
+                    else:
+                        self.bot.send_message(message.chat.id, "Стікера немає в базі(тегів не знайдено.")
+
+                conn.commit()
+                conn.close()
+
+            except Exception as e:
+                self.bot.send_message(message.chat.id, f"Помилка бази даних: {e}")
+                
         @self.bot.message_handler(func=lambda message: True)
         def handle_text(message):
             if not message.text: return
@@ -437,73 +513,6 @@ class MyBot:
                 
             except Exception as e:
                 print(f"Inline Query Error (DB): {e}")
-
-
-        @self.bot.message_handler(commands=['add', 'del', 'edit'])
-        def admin_commands(message):
-            if message.from_user.id not in ADMIN_IDS:
-                return 
-
-            command = message.text.split()[0]
-            msg = self.bot.send_message(message.chat.id, "Стікер?")
-            self.bot.register_next_step_handler(msg, process_sticker_step, command)
-
-        def process_sticker_step(message, command):
-            if message.content_type != 'sticker':
-                self.bot.send_message(message.chat.id, "Не стікер. Всьо скасовано.")
-                return
-
-            file_id = message.sticker.file_id
-            
-            if command == '/add':
-                text_prompt = "Введи тег(и) для ДОДАВАННЯ (декілька - через кому):"
-            elif command == '/del':
-                text_prompt = "Введи тег(и) для ВИДАЛЕННЯ (через кому),\nАБО напишіть слово 'все', щоб повністю видалити цей стікер з бази:"
-            elif command == '/edit':
-                text_prompt = "Введи НОВІ теги для цього стікера (всі старі будуть стерті, вводь через кому):"
-
-            msg = self.bot.send_message(message.chat.id, text_prompt)
-            self.bot.register_next_step_handler(msg, process_tags_step, command, file_id)
-
-        def process_tags_step(message, command, file_id):
-            if message.content_type != 'text':
-                self.bot.send_message(message.chat.id, "Треба текст. Операцію скасовано.")
-                return
-                
-            tags = [t.strip().lower() for t in message.text.split(',') if t.strip()]
-            user_text = message.text.lower().strip()
-            
-            try:
-                current_dir = os.path.dirname(os.path.abspath(__file__))
-                db_path = os.path.join(current_dir, 'stickers.db')
-                conn = sqlite3.connect(db_path)
-                c = conn.cursor()
-
-                if command == '/add':
-                    for tag in tags:
-                        c.execute("INSERT INTO tags (tag, file_id) VALUES (?, ?)", (tag, file_id))
-                    self.bot.send_message(message.chat.id, f"Додано нові теги: {', '.join(tags)}")
-
-                elif command == '/del':
-                    if user_text == 'все':
-                        c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
-                        self.bot.send_message(message.chat.id, "Стікер(бо немає тегів) та всі його теги видалено з бази.")
-                    else:
-                        for tag in tags:
-                            c.execute("DELETE FROM tags WHERE file_id = ? AND tag = ?", (file_id, tag))
-                        self.bot.send_message(message.chat.id, f"Видалено теги: {', '.join(tags)}")
-
-                elif command == '/edit':
-                    c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
-                    for tag in tags:
-                        c.execute("INSERT INTO tags (tag, file_id) VALUES (?, ?)", (tag, file_id))
-                    self.bot.send_message(message.chat.id, f"Теги стікера змінено на: {', '.join(tags)}")
-
-                conn.commit()
-                conn.close()
-
-            except Exception as e:
-                self.bot.send_message(message.chat.id, f"Помилка бази даних: {e}")
 
 
     def start(self):
