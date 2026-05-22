@@ -73,7 +73,12 @@ def process_sticker_step(message, command):
         text_prompt = "Введи НОВІ теги для цього стікера (всі старі будуть стерті, вводь через кому):"
     elif command == '/look':
         text_prompt = "Напиши букву щоб продовжити"
-
+    if "сосав?" in text:
+        try:
+            msg = self.bot.send_message(chat_id, "Канєшно🤤")
+            self.remember_message(msg)
+        except Exception as e: print(e)
+            
     msg = bot.send_message(message.chat.id, text_prompt)
     bot.register_next_step_handler(msg, process_tags_step, command, file_id)
 
