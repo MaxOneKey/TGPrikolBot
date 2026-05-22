@@ -1,542 +1,180 @@
 import telebot
-import schedule
-import time
-import threading
 import os
-import requests
-import re
-import random
 import sqlite3
-from datetime import datetime, timedelta
-from flask import Flask
+import threading
 from telebot import types
+from flask import Flask
 
+# Наполегливо рекомендую перенести токен у змінні середовища Render!
+TOKEN = os.environ.get('BOT_TOKEN')
 TOKEN = '8236217660:AAHGeDEer-h-CoJKvFwRrd6iFvFPFES6dKg'
-TARGET_CHAT_ID = -1001931356645
-VIDEO_FILE_ID = 'BAACAgIAAxkBAAMDaWKNbYKtFWObQtVrOlT4PwW4FMkAAm-WAAKFOhhL_uW0ao2rRtw4BA'
-OPA_VIDEO_ID = 'BAACAgIAAxkBAANOaXJ6Z11C29jVykIzNaiTCSz3rOQAAluOAAIBppFLR_s0rYZukBs4BA'
-TIME_TO_POST = "09:51"
-GARCA_FILE_ID = 'CgACAgIAAx0Ccx4p5QABATFBaXopjS6de84erk1TiiXSAiy1iW4AAvVpAAKTMxFJAn_5FWa31_A4BA'
+ADMIN_IDS = [1859027118, 913802232]
 
-GIF_LIST = [
-    "CgACAgQAAx0Ccx4p5QABASk4aWzxsSRrcDY34MRdJ9RsqI_XIoUAArYFAAJ7uMRRcSP58pCaqwo4BA",
-    "CgACAgQAAxkBAAMfaW0gX88ZG0pTvVOTpPOvCRABJfsAArQFAALocZxQMvdQ6R_M2rI4BA",
-    "CgACAgIAAxkBAAMgaW0gX-5p75-gCoYioGrPwYK34VoAAvpVAAIk0OBIfZVWi1X6PbM4BA",
-    "CgACAgIAAxkBAAMQaW0gX4bhWHc8Xdh1bDPhWd3Bba0AAkFQAAJyS5lLqZOanPaHfQc4BA",
-    "CgACAgQAAxkBAAMRaW0gX9IhPjzZaShll7eMBxpT0QUAAq8FAAJm4RxTGDHXik6ety44BA",
-    "CgACAgQAAxkBAAMSaW0gX83p_vLsiHEDbi08NQup4oAAAr8FAALxPpRRm1E5Y3paoOc4BA",
-    "CgACAgIAAxkBAAMTaW0gX9JRBKyu-l_ltMskOpcVk-UAAi8oAAJWHMhKwQ_0RlGtudM4BA",
-    "CgACAgIAAxkBAAMUaW0gX_SFHiRowbHWMqhJUwzfq1YAAuxIAAKYOolIYDVftDvWASY4BA",
-    "CgACAgIAAxkBAAMVaW0gX97nWq6QySlVuJ7Hvu6z8DkAAhcmAALtNWlJL2Vtp5TwUbg4BA",
-    "CgACAgIAAxkBAAMWaW0gX1vKUx6uJ9BCELB2ul10LAUAAqI8AAKQxcBJaiJgtAEaRwg4BA",
-    "CgACAgIAAxkBAAMXaW0gXy2jsxTLXaVV-zzgotN6ZlkAAuRpAAIZd_lKsa3-sfYcXok4BA",
-    "CgACAgIAAxkBAAMYaW0gXzgbzI2juLcF07iTgsyDBtoAArZUAAJKH0FJVBgx_NfnN_E4BA",
-    "CgACAgQAAxkBAAMZaW0gX9fCfMZNerEZJTHKFlKGdwsAAnYPAALbSylSdKqt4ZNhaKI4BA",
-    "CgACAgIAAxkBAAMaaW0gX3sv9tKOClZhb1n5JCDx1YIAAjo1AALhy4BI3aULWbkb5HE4BA",
-    "CgACAgIAAxkBAAMbaW0gXwjDiHa_SZMsnz76W12R87oAAsE2AAKM8ZlKQlrQqClMlNM4BA",
-    "CgACAgIAAxkBAAMcaW0gX3rg0zLZK8zOA0zliNha9n8AAtpCAAJGlylLc2y9qRq3eiQ4BA",
-    "CgACAgIAAxkBAAMdaW0gXxQdiQpsZCchd9U18g5lyxgAApFQAAJ8o_hLJkeQBZi08hM4BA",
-    "CgACAgIAAxkBAAMeaW0gX9Cvq6fMWcN3m7jrVq1DCEEAAogyAAJsVolIzdiy8wABNM0iOAQ",
-    "CgACAgQAAxkBAANJaW0o-7jGS3-GvcnUE47RfoxfymsAApIDAALVZ8VTRpgDCjR8cP84BA",
-    "CgACAgIAAxkBAANIaW0o-9Kymtmzf1R_3lWlTlUlI_AAAi11AAKFAAGZSUdO8p8EdfWVOAQ",
-    "CgACAgIAAxkBAANKaW0o-zxZFiBrXWgYUBd99SBQ7eYAAnFoAAIgunBJcNMKEEfdido4BA",
-    "CgACAgIAAxkBAANPaXKIyVVu5fzgKlD6hepXM6262rgAAvuOAAIBppFLAVH5NnrLLYY4BA",
-    "CgACAgQAAxkBAANXaXKK7wABF8d67ArOZ2flbK2wIqjFAALuGwACCPYRUHtkD1Jip9UPOAQ",
-    "CgACAgIAAxkBAANbaXKMSfn2cbn2VfSwmPHwR3cQRDYAAjyPAAIBppFLSn8WcXm1NL04BA",
-    "CgACAgIAAxkBAANdaXKMWqrOafT6gnzmvM7IlUPmXh8AAj2PAAIBppFLJN0uubSIMNA4BA",
-    "CgACAgIAAxkBAANfaXyf6papK7I6jot-6f9PYUxcFFMAAp6UAALgDehLrUWpmO71m3o4BA",
-    "CgACAgIAAxkBAANhaXyglzM2it7xMGzUIpKf5iP_aIUAAqKUAALgDehLPKn2RPGjtnc4BA",
-    "CgACAgIAAxkBAANjaXygoxQpTn8D8Ax6vum8UrrOoSAAAqOUAALgDehLZZmUAAFzpL5TOAQ",
-    "CgACAgIAAxkBAANlaXyhGPv_BdLRQRU2OrurTeI2XB4AAqyUAALgDehL_prUtmmDsmg4BA",
-    "CgACAgIAAxkBAANnaXyhJT5cvtzwU-2-DB_QQPvpZeEAAq6UAALgDehLkr8LBsl1tyo4BA",
-    "CgACAgIAAxkBAANpaXyhLcsxQKDO7Oe8peT9lnjsDCUAArCUAALgDehLY9Dw2087sUk4BA",
-    "CgACAgIAAxkBAANraXyhRINOgmOoXdAumhGJ_iqVOtIAArKUAALgDehLLgtB885qkkY4BA",
-    "CgACAgIAAxkBAANvaXyh2ZvJg6AMk1hizoQC_6_saGYAAsOUAALgDehLh7QPioLJQkU4BA",
-    "CgACAgIAAxkBAANtaXyhosiVtS_OI8oZwwAB7LrU3BAWAAK-lAAC4A3oS7JJ0RnqKnikOAQ",
-    "CgACAgIAAxkBAAN5aYenLyrPsB1Rb87pHVimX_Q7SkAAAoeIAAI_dkFIxiJ8NqQNx_g6BA",
-    "CgACAgIAAxkBAAN4aYenL8jvoIGeESWfgfpjIfCjyLQAAoaIAAI_dkFIJnbt8_xylNg6BA",
-    "CgACAgIAAxkBAAN6aYenL_5SxbIJnfGPMoN0HchWD88AAo6IAAI_dkFIJLEAAYjGr5FXOgQ",
-    "CgACAgIAAxkBAAN7aYenL1gi7luwYC4aCAXUs-3h6YgAApOIAAI_dkFItXc07hVB_zM6BA",
-    "CgACAgIAAxkBAAN8aYenL-9L2cNZUl5MPTlr5YwslOkAAu6IAAI_dkFI3KepUUmU8dc6BA",
-    "CgACAgIAAxkBAAN3aYenFeB4VTlc4yPHPYkiXRc-rQkAAqeIAAJdiUFIaPn58Xnzt9U6BA",
-    "CgACAgIAAx0Ccx4p5QABAULkaZMHaXV3q246Uxxx3GqmfPgEO1AAAvUNAAI5sRlJR8Y-utSZ3HY6BA",
-    "CgACAgQAAxkBAAOKaZ9VzXp1fLqxAj5YWfv8JUgPTpoAAi4MAAKuzxFTGtyGB5atVwQ6BA",
-    "CgACAgIAAx0Ccx4p5QABAT1YaYyyhzWNBY1C8-U4A5_t4GlvHvoAAoORAAKef2BIh3jeNw68ha46BA",
-    "CgACAgIAAx0Ccx4p5QABAUUKaZQ3hAghcCt29SD7GjXWcyCAg-EAAqZjAAIz49BIwKDUU67Oo0M6BA"
-]
-
-STICKER_PACKS = [
-    "kakashkaslonareal_by_fStikBot",
-    "zalupkogeneral_by_fStikBot",
-    "Zalupines_by_fStikBot",
-    "Funny_Amaranth_Swordtail_by_fStikBot",
-    "gandomikupidoni_by_fStikBot",
-    "Foolish_Apricot_Panther_by_fStikBot"
-]
-
-USER_STATUSES = {
-    1859027118: "Покровітєль водолаза",
-    1428109401: "Уважаємий",
-    1809715140: "Уважаємий",
-    1360063280: "Уважаємий",
-    994207641: "Уважаємий",
-    6676149475: "Дирявий водолаз",
-    913802232: "Покровітєль водолаза",
-}
-DEFAULT_STATUS = "Гість"
-
-ADMIN_IDS = [1859027118, 913802232] 
-
-class CurrencyProvider:
-    CURRENCY_MAP = {
-        'usd': 'USD', '$': 'USD', 'usdt': 'USD', 'юсд': 'USD',
-        'долар': 'USD', 'долара': 'USD', 'доларів': 'USD', 'долари': 'USD',
-        'бакс': 'USD', 'бакса': 'USD', 'баксів': 'USD', 'бакси': 'USD',
-        'eur': 'EUR', '€': 'EUR', 'евро': 'EUR',
-        'євро': 'EUR', 'євра': 'EUR', 'єврів': 'EUR',
-        'uah': 'UAH', '₴': 'UAH',
-        'гривня': 'UAH', 'гривні': 'UAH', 'гривень': 'UAH', 'грн': 'UAH'
-    }
-
-    @staticmethod
-    def get_data():
-        try:
-            nbu_resp = requests.get("https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json", timeout=5).json()
-            pb_resp = requests.get("https://api.privatbank.ua/p24api/pubinfo?exchange&coursid=5", timeout=5).json()
-            return nbu_resp, pb_resp
-        except Exception as e:
-            print(f"API Error: {e}")
-            return None, None
-
-    @staticmethod
-    def get_rates_message(target_currency=None):
-        nbu_data, pb_data = CurrencyProvider.get_data()
-        
-        if not nbu_data or not pb_data:
-            return "❌ Помилка отримання даних."
-
-        usd_nbu = next((i["rate"] for i in nbu_data if i["cc"] == "USD"), 0)
-        eur_nbu = next((i["rate"] for i in nbu_data if i["cc"] == "EUR"), 0)
-
-        usd_pb = next((i for i in pb_data if i['ccy'] == 'USD'), {'buy': '0', 'sale': '0'})
-        eur_pb = next((i for i in pb_data if i['ccy'] == 'EUR'), {'buy': '0', 'sale': '0'})
-        
-        usd_buy = float(usd_pb['buy'])
-        usd_sale = float(usd_pb['sale'])
-        eur_buy = float(eur_pb['buy'])
-        eur_sale = float(eur_pb['sale'])
-
-        msg = ""
-        
-        if target_currency == 'USD' or target_currency is None:
-            msg += (f"*Долар (USD):*\n"
-                    f"🏦 НБУ: {usd_nbu:.2f} грн\n"
-                    f"🏪 Приват: {usd_buy:.2f} / {usd_sale:.2f}\n\n")
-
-        if target_currency == 'EUR' or target_currency is None:
-            msg += (f"*Євро (EUR):*\n"
-                    f"🏦 НБУ: {eur_nbu:.2f} грн\n"
-                    f"🏪 Приват: {eur_buy:.2f} / {eur_sale:.2f}")
-        
-        if msg == "": 
-             return "💰 Курс валют оновлено."
-             
-        return f"💰 *Курс валют:*\n\n{msg}"
-
-    @staticmethod
-    def convert_currency(amount, from_curr_raw, to_curr_raw):
-        from_clean = from_curr_raw.lower().strip()
-        to_clean = to_curr_raw.lower().strip()
-        from_code = CurrencyProvider.CURRENCY_MAP.get(from_clean)
-        to_code = CurrencyProvider.CURRENCY_MAP.get(to_clean)
-
-        if not from_code: return f"Залупагриз"
-        if not to_code: return f"Жирний"
-
-        nbu_data, _ = CurrencyProvider.get_data()
-        if not nbu_data: return "❌ Помилка API НБУ"
-
-        rate_from = 1.0 if from_code == 'UAH' else next((i["rate"] for i in nbu_data if i["cc"] == from_code), None)
-        rate_to = 1.0 if to_code == 'UAH' else next((i["rate"] for i in nbu_data if i["cc"] == to_code), None)
-
-        if not rate_from or not rate_to: return "❌ Не знайшов курс для такої конвертації."
-
-        result = (amount * rate_from) / rate_to
-        return f"💱 *Конвертація (по НБУ):*\n{amount:.2f} {from_code} = `{result:.2f} {to_code}`"
-
-class MyBot:
-    def __init__(self):
-        self.bot = telebot.TeleBot(TOKEN)
-        self.my_message_ids = []
-
-        self.number_cooldowns = {} #рандом число
-        
-        self.bot_id = int(TOKEN.split(':')[0]) 
-        self.last_sender_id = None
-
-        self.random_gif_time = self.generate_random_time()
-        print(f"GIF Time: {self.random_gif_time}")
-
-        self.random_sticker_time = self.generate_random_time()
-        print(f"Sticker Time: {self.random_sticker_time}")
-        
-        schedule.every().minute.do(self.check_random_gif)
-#        schedule.every().minute.do(self.check_random_sticker)
-#        schedule.every().day.at(TIME_TO_POST).do(self.send_daily_message)
-
-        self.register_handlers()
-
-    def generate_random_time(self):
-        hour = random.randint(10, 21) 
-        minute = random.randint(0, 59)
-        return f"{hour:02d}:{minute:02d}"
-
-    def check_random_gif(self):
-        current_time = time.strftime("%H:%M")
-        
-        if current_time == self.random_gif_time:
-            if self.last_sender_id == self.bot_id:
-                print("Skip GIF (Spam protection)")
-                now = datetime.now()
-                future_time = now + timedelta(minutes=30)
-                self.random_gif_time = future_time.strftime("%H:%M")
-                print(f"New GIF Time: {self.random_gif_time}")
-                return
-
-            self.send_random_gif()
-            self.random_gif_time = self.generate_random_time()
-            print(f"Next GIF: {self.random_gif_time}")
-
-    def check_random_sticker(self):
-        current_time = time.strftime("%H:%M")
-        
-        if current_time == self.random_sticker_time:
-            if self.last_sender_id == self.bot_id:
-                print("Skip Sticker (Spam protection)")
-                now = datetime.now()
-                future_time = now + timedelta(minutes=30)
-                self.random_sticker_time = future_time.strftime("%H:%M")
-                print(f"New Sticker Time: {self.random_sticker_time}")
-                return
-
-            self.send_random_sticker()
-            self.random_sticker_time = self.generate_random_time()
-            print(f"Next Sticker: {self.random_sticker_time}")
-
-    def send_random_gif(self, chat_id=None):
-        target = chat_id if chat_id else TARGET_CHAT_ID
-        
-        try:
-            gif_id = random.choice(GIF_LIST)
-            msg = self.bot.send_animation(target, gif_id, caption="")
-            self.remember_message(msg)
-        except Exception as e:
-            print(f"Random Gif Error: {e}")
-            
-    def send_secret_gif(self):
-        try:
-            gif_id = random.choice(GIF_LIST)
-            msg = self.bot.send_animation(TARGET_CHAT_ID, gif_id, caption="")
-            self.remember_message(msg)
-        except Exception as e:
-            print(f"Random Gif Error: {e}")
-
-    def send_random_sticker(self, chat_id=None):
-        target = chat_id if chat_id else TARGET_CHAT_ID
-        
-        try:
-            pack_name = random.choice(STICKER_PACKS)
-            sticker_set = self.bot.get_sticker_set(pack_name)
-            
-            if sticker_set and sticker_set.stickers:
-                random_sticker = random.choice(sticker_set.stickers)
-                msg = self.bot.send_sticker(target, random_sticker.file_id)
-                self.remember_message(msg)
-                print(f"Sticker sent to {target} from: {pack_name}")
-            else:
-                print(f"Pack error: {pack_name}")
-                
-        except Exception as e:
-            print(f"Sticker Error: {e}")
-    def remember_message(self, sent_message):
-        if sent_message:
-            self.my_message_ids.append(sent_message.message_id)
-            if len(self.my_message_ids) > 100: self.my_message_ids.pop(0)
-            self.last_sender_id = self.bot_id
-
-    def register_handlers(self):
-        @self.bot.message_handler(commands=['add', 'del', 'edit', 'look'])
-        def admin_commands(message):
-            if message.from_user.id not in ADMIN_IDS:
-                return 
-
-            command = message.text.split()[0]
-            msg = self.bot.send_message(message.chat.id, "Стікер?")
-            self.bot.register_next_step_handler(msg, process_sticker_step, command)
-
-        def process_sticker_step(message, command):
-            if message.content_type != 'sticker':
-                self.bot.send_message(message.chat.id, "Не стікер. Всьо скасовано.")
-                return
-
-            file_id = message.sticker.file_id
-            
-            if command == '/add':
-                text_prompt = "Введи тег(и) для ДОДАВАННЯ (декілька - через кому):"
-            elif command == '/del':
-                text_prompt = "Введи тег(и) для ВИДАЛЕННЯ (через кому),\nАБО напиши слово 'все', щоб повністю видалити цей стікер з бази:"
-            elif command == '/edit':
-                text_prompt = "Введи НОВІ теги для цього стікера (всі старі будуть стерті, вводь через кому):"
-            elif command == '/look':
-                text_prompt = "Напиши любу букву(кастильменіпіхуй)"
-
-            msg = self.bot.send_message(message.chat.id, text_prompt)
-            self.bot.register_next_step_handler(msg, process_tags_step, command, file_id)
-
-        def process_tags_step(message, command, file_id):
-            if message.content_type != 'text':
-                self.bot.send_message(message.chat.id, "Треба текст. Операцію скасовано.")
-                return
-                
-            tags = [t.strip().lower() for t in message.text.split(',') if t.strip()]
-            user_text = message.text.lower().strip()
-            
-            try:
-                current_dir = os.path.dirname(os.path.abspath(__file__))
-                db_path = os.path.join(current_dir, 'stickers.db')
-                conn = sqlite3.connect(db_path)
-                c = conn.cursor()
-
-                if command == '/add':
-                    for tag in tags:
-                        c.execute("INSERT INTO tags (tag, file_id) VALUES (?, ?)", (tag, file_id))
-                    self.bot.send_message(message.chat.id, f"Додано нові теги: {', '.join(tags)}")
-
-                elif command == '/del':
-                    if user_text == 'все':
-                        c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
-                        self.bot.send_message(message.chat.id, "Стікер(бо немає тегів) та всі його теги видалено з бази.")
-                    else:
-                        for tag in tags:
-                            c.execute("DELETE FROM tags WHERE file_id = ? AND tag = ?", (file_id, tag))
-                        self.bot.send_message(message.chat.id, f"Видалено теги: {', '.join(tags)}")
-
-                elif command == '/edit':
-                    c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
-                    for tag in tags:
-                        c.execute("INSERT INTO tags (tag, file_id) VALUES (?, ?)", (tag, file_id))
-                    self.bot.send_message(message.chat.id, f"Теги стікера змінено на: {', '.join(tags)}")
-
-                elif command == '/look':
-                    c.execute("SELECT tag FROM tags WHERE file_id = ?", (file_id,))
-                    rows = c.fetchall()
-                    if rows:
-                        tags_list = ", ".join([row[0] for row in rows])
-                        self.bot.send_message(message.chat.id, f"Теги стікера:\n{tags_list}")
-                    else:
-                        self.bot.send_message(message.chat.id, "Стікера немає в базі(тегів не знайдено.")
-
-                conn.commit()
-                conn.close()
-
-            except Exception as e:
-                self.bot.send_message(message.chat.id, f"Помилка бази даних: {e}")
-                
-        @self.bot.message_handler(func=lambda message: True)
-        def handle_text(message):
-            if not message.text: return
-            text = message.text.lower()
-            chat_id = message.chat.id
-            user_id = message.from_user.id
-            name = message.from_user.first_name
-
-            self.last_sender_id = user_id
-            print(f"User: {name} | Text: {text}")
-
-            if text == "F0XYZPORN0RESTRICTED":
-                now = datetime.now()
-                last_used = self.number_cooldowns.get(user_id)
-
-                if last_used and now - last_used < timedelta(hours=12):
-                    remaining = timedelta(hours=12) - (now - last_used)
-                    hours, remainder = divmod(remaining.seconds, 3600)
-                    minutes, _ = divmod(remainder, 60)
-                    msg = self.bot.send_message(chat_id, f"Блять ти шо вобще? Время ше не пройшло, подожди ше {hours} год {minutes} хв.")
-                    self.remember_message(msg)
-                    return
-
-                random_num = round(random.uniform(-30.0, 0.0), 1)
-                
-                comment = ""
-                if random_num < 0:
-                    comment = "Хуй залєз в сракатан, пітушара блять🥶"
-                elif random_num == 0:
-                    comment = "Ну піздец🫤"
-                elif 0.1 <= random_num <= 1.0:
-                    comment = "Так називаємий грібочік🤣"
-                elif 1.1 <= random_num <= 5.0:
-                    comment = "Ну тут нічим гордитися😒"
-                elif 5.1 <= random_num <= 10.0:
-                    comment = "Стручок😐"
-                elif 10.1 <= random_num <= 17.0:
-                    comment = "Нармалди😎"
-                elif 17.1 <= random_num <= 30.0:
-                    comment = "Вотета хуяка😯"
-                elif 30.1 <= random_num <= 50.0:
-                    comment = "Юрок ти как с таким ходіш😨"
-
-                msg = self.bot.send_message(chat_id, f"👨🏿 {name}, твій хуй: {random_num} см\n {comment} ")
-                self.remember_message(msg)
-                
-                self.number_cooldowns[user_id] = now
-                return
-
-            if text == "ч г":
-                self.bot.send_message(chat_id, f"Г: {self.random_gif_time}")
-                return
-
-            if text == "ч с":
-                self.bot.send_message(chat_id, f"C: {self.random_sticker_time}")
-                return
-
-            pattern = r"(\d+[.,]?\d*)\s*([а-яА-Яa-zA-Z$€]+)\s+(?:в|у|in|to)\s+([а-яА-Яa-zA-Z$€]+)"
-            match = re.search(pattern, text)
-            if match:
-                amount = float(match.group(1).replace(',', '.'))
-                curr_from = match.group(2)
-                curr_to = match.group(3)
-                result_text = CurrencyProvider.convert_currency(amount, curr_from, curr_to)
-                if result_text:
-                    msg = self.bot.send_message(chat_id, result_text, parse_mode="Markdown")
-                    self.remember_message(msg)
-                return 
-
-            if re.search(r"\bопа+\b", text):
-                try:
-                    msg = self.bot.send_video(chat_id, OPA_VIDEO_ID, caption="")
-                    self.remember_message(msg)
-                except Exception as e: print(e)
-
-            if text == "курс":
-                msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message(None), parse_mode="Markdown")
-                self.remember_message(msg)
-            elif text in ["usd", "долар", "dollar", "$"]:
-                msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message('USD'), parse_mode="Markdown")
-                self.remember_message(msg)
-            elif text in ["eur", "євро", "euro", "€"]:
-                msg = self.bot.send_message(chat_id, CurrencyProvider.get_rates_message('EUR'), parse_mode="Markdown")
-                self.remember_message(msg)
-            
-            if text in ["id", "айді", "мій id"]:
-                msg = self.bot.reply_to(message, f"Твій ID: `{user_id}`", parse_mode="Markdown")
-                self.remember_message(msg)
-
-            if "мері крісмас" in text:
-                try:
-                    msg = self.bot.send_video(chat_id, VIDEO_FILE_ID, caption="👀")
-                    self.remember_message(msg)
-                except Exception as e: print(e)
-
-            if "сосав?" in text:
-                try:
-                    msg = self.bot.send_message(chat_id, "Канєшно🤤")
-                    self.remember_message(msg)
-                except Exception as e: print(e)
-
-            if "статус" in text:
-                status = USER_STATUSES.get(user_id, DEFAULT_STATUS)
-                msg = self.bot.send_message(chat_id, f"👤 *{name}*, статус: `{status}`", parse_mode="Markdown")
-                self.remember_message(msg)
-            
-            if "гіф" in text:
-                self.send_random_gif(chat_id=chat_id)
-
-            if "yeban" in text:
-                self.send_secret_gif()
-                
-            if "стікер" in text:
-                self.send_random_sticker(chat_id=chat_id)
-
-            if "нігер" in text:
-                try:
-                    msg1 = self.bot.send_message(chat_id, "‼️😡⚠️NIGGER DETECTED⚠️😡‼️")
-                    self.remember_message(msg1)
-                    msg2 = self.bot.send_video(chat_id, GARCA_FILE_ID, caption="")
-                    self.remember_message(msg2)
-                except Exception as e: print(e)
-                    
-        @self.bot.inline_handler(func=lambda query: len(query.query.strip()) > 1)
-        def handle_inline_stickers(inline_query):
-            print(f"ІНЛАЙН_ЗАПИТ: '{inline_query.query}'") 
-            
-            search_term = inline_query.query.lower().strip()
-            
-            if search_term == "тест":
-                try:
-                    fallback_result = types.InlineQueryResultCachedSticker(
-                        id="100_percent_test",
-                        sticker_file_id="CAACAgQAAxkBAAMRaW0gX9IhPjzZaShll7eMBxpT0QUAAq8FAAJm4RxTGDHXik6ety44BA"
-                    )
-                    self.bot.answer_inline_query(inline_query.id, [fallback_result], cache_time=1, is_personal=True)
-                    return 
-                except Exception as e:
-                    print(f"Test Fallback Error: {e}")
-                    return
-                    
-            try:
-                current_dir = os.path.dirname(os.path.abspath(__file__))
-                db_path = os.path.join(current_dir, 'stickers.db')
-                
-                conn = sqlite3.connect(db_path)
-                c = conn.cursor()
-                
-                c.execute("SELECT file_id FROM tags WHERE tag LIKE ?", (f'%{search_term}%',))
-                rows = c.fetchall()
-                conn.close()
-                
-                if not rows:
-                    return 
-        
-                matched_file_ids = [row[0] for row in rows]
-                
-                results = []
-               
-                for idx, file_id in enumerate(list(set(matched_file_ids))[:50]): 
-                    results.append(
-                        types.InlineQueryResultCachedSticker(
-                            id=str(idx),
-                            sticker_file_id=file_id
-                        )
-                    )
-
-                self.bot.answer_inline_query(inline_query.id, results, cache_time=1, is_personal=True)
-                
-            except Exception as e:
-                print(f"Inline Query Error (DB): {e}")
-
-
-    def start(self):
-        self.bot.infinity_polling(allowed_updates=['message', 'inline_query'])
-
+bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
+
+# Створюємо файл бази та таблицю автоматично при запуску, якщо їх немає
+def init_db():
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stickers.db')
+    conn = sqlite3.connect(db_path)
+    c = conn.cursor()
+    c.execute('CREATE TABLE IF NOT EXISTS tags (tag TEXT, file_id TEXT)')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+# ==========================================
+# 1. КОМАНДА ДЛЯ ЗБЕРЕЖЕННЯ БАЗИ ДАНИХ
+# ==========================================
+@bot.message_handler(commands=['backup'])
+def send_backup(message):
+    if message.from_user.id not in ADMIN_IDS:
+        return
+    
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stickers.db')
+    if os.path.exists(db_path):
+        with open(db_path, 'rb') as doc:
+            bot.send_document(
+                message.chat.id, 
+                doc, 
+                caption="📦 Ось твоя актуальна база стікерів (`stickers.db`).\n\n"
+                        "Збережи її, якщо плануєш оновлювати бота на Render.",
+                parse_mode="Markdown"
+            )
+    else:
+        bot.send_message(message.chat.id, "❌ Файл бази даних ще не створено або він порожній.")
+
+
+# ==========================================
+# 2. УПРАВЛІННЯ СТІКЕРАМИ (АДМІНКА)
+# ==========================================
+@bot.message_handler(commands=['add', 'del', 'edit', 'look'])
+def admin_commands(message):
+    if message.from_user.id not in ADMIN_IDS:
+        return 
+    
+    command = message.text.split()[0]
+    msg = bot.send_message(message.chat.id, "Надішли стікер:")
+    bot.register_next_step_handler(msg, process_sticker_step, command)
+
+def process_sticker_step(message, command):
+    if message.content_type != 'sticker':
+        bot.send_message(message.chat.id, "Це не стікер. Операцію скасовано.")
+        return
+
+    file_id = message.sticker.file_id
+    
+    if command == '/add':
+        text_prompt = "Введи тег(и) для ДОДАВАННЯ (через кому):"
+    elif command == '/del':
+        text_prompt = "Введи тег(и) для ВИДАЛЕННЯ (через кому),\nАБО напиши слово 'все', щоб повністю видалити цей стікер з бази:"
+    elif command == '/edit':
+        text_prompt = "Введи НОВІ теги для цього стікера (всі старі будуть стерті, вводь через кому):"
+    elif command == '/look':
+        text_prompt = "Напиши букву щоб продовжити"
+
+    msg = bot.send_message(message.chat.id, text_prompt)
+    bot.register_next_step_handler(msg, process_tags_step, command, file_id)
+
+def process_tags_step(message, command, file_id):
+    if message.content_type != 'text':
+        bot.send_message(message.chat.id, "Треба текст. Операцію скасовано.")
+        return
+        
+    tags = [t.strip().lower() for t in message.text.split(',') if t.strip()]
+    user_text = message.text.lower().strip()
+    
+    try:
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stickers.db')
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+
+        if command == '/add':
+            for tag in tags:
+                c.execute("INSERT INTO tags (tag, file_id) VALUES (?, ?)", (tag, file_id))
+            bot.send_message(message.chat.id, f"Додано нові теги: {', '.join(tags)}")
+
+        elif command == '/del':
+            if user_text == 'все':
+                c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
+                bot.send_message(message.chat.id, "🗑 Стікер та всі його теги видалено з бази.")
+            else:
+                for tag in tags:
+                    c.execute("DELETE FROM tags WHERE file_id = ? AND tag = ?", (file_id, tag))
+                bot.send_message(message.chat.id, f"🗑 Видалено теги: {', '.join(tags)}")
+
+        elif command == '/edit':
+            c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
+            for tag in tags:
+                c.execute("INSERT INTO tags (tag, file_id) VALUES (?, ?)", (tag, file_id))
+            bot.send_message(message.chat.id, f"Теги стікера змінено на: {', '.join(tags)}")
+
+        elif command == '/look':
+            c.execute("SELECT tag FROM tags WHERE file_id = ?", (file_id,))
+            rows = c.fetchall()
+            if rows:
+                tags_list = ", ".join([row[0] for row in rows])
+                bot.send_message(message.chat.id, f"Теги стікера:\n{tags_list}")
+            else:
+                bot.send_message(message.chat.id, "Стікера немає в базі (тегів не знайдено).")
+
+        conn.commit()
+        conn.close()
+
+    except Exception as e:
+        bot.send_message(message.chat.id, f"❌ Помилка бази даних: {e}")
+
+
+# ==========================================
+# 3. ІНЛАЙН ПОШУК СТІКЕРІВ
+# ==========================================
+@bot.inline_handler(func=lambda query: len(query.query.strip()) > 1)
+def handle_inline_stickers(inline_query):
+    search_term = inline_query.query.lower().strip()
+    
+    try:
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stickers.db')
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        
+        c.execute("SELECT file_id FROM tags WHERE tag LIKE ?", (f'%{search_term}%',))
+        rows = c.fetchall()
+        conn.close()
+        
+        if not rows:
+            return 
+    
+        matched_file_ids = [row[0] for row in rows]
+        results = []
+       
+        for idx, file_id in enumerate(list(set(matched_file_ids))[:50]): 
+            results.append(
+                types.InlineQueryResultCachedSticker(
+                    id=str(idx),
+                    sticker_file_id=file_id
+                )
+            )
+
+        bot.answer_inline_query(inline_query.id, results, cache_time=1, is_personal=True)
+        
+    except Exception as e:
+        print(f"Inline Query Error: {e}")
+
+
+# ==========================================
+# 4. ЗАПУСК БОТА ТА СЕРВЕРА
+# ==========================================
 @app.route('/')
-def index(): return "Bot is working..."
+def index(): 
+    return "Sticker Bot is running..."
 
 def run_flask():
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
 
-def run_scheduler():
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
-
 if __name__ == "__main__":
-    my_bot = MyBot()
-    threading.Thread(target=run_scheduler).start()
-    threading.Thread(target=my_bot.start).start()
-    run_flask()
-
-
-
-
+    # Запускаємо веб-сервер у фоновому потоці для Render
+    threading.Thread(target=run_flask).start()
+    # Запускаємо самого бота
+    bot.infinity_polling(allowed_updates=['message', 'inline_query'])
