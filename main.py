@@ -183,3 +183,76 @@ if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
     # Запускаємо самого бота
     bot.infinity_polling(allowed_updates=['message', 'inline_query'])
+
+# ==========================================
+# 5. СЛУЖБОВІ КОМАНДИ ДЛЯ СТАРОЇ БАЗИ
+# ==========================================
+
+@bot.message_handler(commands=['fixdb'])
+def fix_database(message):
+    if message.from_user.id not in ADMIN_IDS: return
+    
+    msg = bot.send_message(message.chat.id, "⏳ Починаю лікування старих записів бази...")
+    
+    try:
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stickers.db')
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        
+        # Шукаємо всі стікери, у яких ще немає унікального ID
+        c.execute("SELECT DISTINCT file_id FROM tags WHERE file_unique_id IS NULL OR file_unique_id = ''")
+        rows = c.fetchall()
+        
+        fixed_count = 0
+        for row in rows:
+            fid = row[0]
+            try:
+                # Просимо у Telegram вічний унікальний ID для старого файлу
+                file_info = bot.get_file(fid)
+                unique_id = file_info.file_unique_id
+                
+                # Записуємо його в базу
+                c.execute("UPDATE tags SET file_unique_id = ? WHERE file_id = ?", (unique_id, fid))
+                fixed_count += 1
+            except Exception as e:
+                print(f"Не вдалося оновити стікер: {e}")
+        
+        conn.commit()
+        conn.close()
+        
+        bot.edit_message_text(f"✅ Базу успішно вилікувано!\nОновлено стікерів: {fixed_count}.\nТепер /look та /del будуть працювати для старих стікерів.", chat_id=message.chat.id, message_id=msg.message_id)
+        
+    except Exception as e:
+        bot.edit_message_text(f"❌ Помилка: {e}", chat_id=message.chat.id, message_id=msg.message_id)
+
+@bot.message_handler(commands=['dump'])
+def dump_stickers(message):
+    if message.from_user.id not in ADMIN_IDS: return
+    
+    bot.send_message(message.chat.id, "📦 Вивантажую всі збережені стікери та їх теги в чат...")
+    
+    try:
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stickers.db')
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        
+        c.execute("SELECT DISTINCT file_id FROM tags")
+        rows = c.fetchall()
+        
+        for row in rows:
+            fid = row[0]
+            c.execute("SELECT tag FROM tags WHERE file_id = ?", (fid,))
+            tags = [t[0] for t in c.fetchall()]
+            
+            try:
+                # Бот фізично надсилає тобі стікер і пише, які теги до нього прив'язані
+                bot.send_sticker(message.chat.id, fid)
+                bot.send_message(message.chat.id, f"☝️ Теги: {', '.join(tags)}")
+                time.sleep(0.3) # Затримка, щоб Телеграм не заблокував бота за спам
+            except:
+                pass
+                
+        conn.close()
+        bot.send_message(message.chat.id, "✅ Вивантаження бази завершено.")
+    except Exception as e:
+        bot.send_message(message.chat.id, f"Помилка: {e}")
