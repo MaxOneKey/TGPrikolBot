@@ -192,38 +192,69 @@ if __name__ == "__main__":
 def fix_database(message):
     if message.from_user.id not in ADMIN_IDS: return
     
-    msg = bot.send_message(message.chat.id, "⏳ Починаю лікування старих записів бази...")
+    bot.send_message(message.chat.id, "🛠 Починаю глибоку діагностику бази...")
     
     try:
         db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stickers.db')
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         
-        # Шукаємо всі стікери, у яких ще немає унікального ID
+        # 1. Перевірка колонок
+        c.execute("PRAGMA table_info(tags)")
+        columns = [col[1] for col in c.fetchall()]
+        bot.send_message(message.chat.id, f"📊 Колонки в базі: {', '.join(columns)}")
+        
+        # 2. Рахуємо загальну кількість записів
+        c.execute("SELECT COUNT(*) FROM tags")
+        total_rows = c.fetchone()[0]
+        
+        # 3. Рахуємо записи без file_unique_id
+        if 'file_unique_id' in columns:
+            c.execute("SELECT COUNT(DISTINCT file_id) FROM tags WHERE file_unique_id IS NULL OR file_unique_id = ''")
+            needs_fix_count = c.fetchone()[0]
+        else:
+            needs_fix_count = "Невідомо (немає колонки)"
+            
+        bot.send_message(message.chat.id, f"📈 Всього тегів у базі: {total_rows}\n⚠️ Унікальних стікерів, яким бракує нового ID: {needs_fix_count}")
+
+        if needs_fix_count == 0 or type(needs_fix_count) == str:
+            bot.send_message(message.chat.id, "🛑 Зупиняю роботу: оновлювати нічого, або колонки не існує.")
+            conn.close()
+            return
+
+        # 4. Пробуємо оновити
         c.execute("SELECT DISTINCT file_id FROM tags WHERE file_unique_id IS NULL OR file_unique_id = ''")
         rows = c.fetchall()
         
         fixed_count = 0
+        errors = []
+        
+        bot.send_message(message.chat.id, "🔄 Звертаюсь до серверів Telegram за новими ID...")
+        
         for row in rows:
             fid = row[0]
             try:
-                # Просимо у Telegram вічний унікальний ID для старого файлу
                 file_info = bot.get_file(fid)
                 unique_id = file_info.file_unique_id
-                
-                # Записуємо його в базу
                 c.execute("UPDATE tags SET file_unique_id = ? WHERE file_id = ?", (unique_id, fid))
                 fixed_count += 1
             except Exception as e:
-                print(f"Не вдалося оновити стікер: {e}")
-        
+                err_msg = str(e)
+                if err_msg not in errors:
+                    errors.append(err_msg) # Зберігаємо унікальні помилки, щоб не спамити
+
         conn.commit()
         conn.close()
         
-        bot.edit_message_text(f"✅ Базу успішно вилікувано!\nОновлено стікерів: {fixed_count}.\nТепер /look та /del будуть працювати для старих стікерів.", chat_id=message.chat.id, message_id=msg.message_id)
+        # 5. Звіт
+        report = f"✅ Успішно оновлено стікерів: {fixed_count} з {needs_fix_count}.\n"
+        if errors:
+            report += f"\n❌ Помилки від Telegram (чому інші не оновились):\n" + "\n".join(errors)
+            
+        bot.send_message(message.chat.id, report)
         
     except Exception as e:
-        bot.edit_message_text(f"❌ Помилка: {e}", chat_id=message.chat.id, message_id=msg.message_id)
+        bot.send_message(message.chat.id, f"❌ Критична помилка скрипта: {e}")
 
 @bot.message_handler(commands=['dump'])
 def dump_stickers(message):
