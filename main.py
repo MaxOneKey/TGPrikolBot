@@ -177,13 +177,6 @@ def index():
 def run_flask():
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
-if __name__ == "__main__":
-    # Запускаємо веб-сервер у фоновому потоці для Render
-    threading.Thread(target=run_flask).start()
-    # Запускаємо самого бота
-    bot.infinity_polling(allowed_updates=['message', 'inline_query'])
-
 # ==========================================
 # 5. СЛУЖБОВІ КОМАНДИ ДЛЯ СТАРОЇ БАЗИ
 # ==========================================
@@ -287,3 +280,10 @@ def dump_stickers(message):
         bot.send_message(message.chat.id, "✅ Вивантаження бази завершено.")
     except Exception as e:
         bot.send_message(message.chat.id, f"Помилка: {e}")
+
+
+if __name__ == "__main__":
+    # Запускаємо веб-сервер у фоновому потоці для Render
+    threading.Thread(target=run_flask).start()
+    # Запускаємо самого бота
+    bot.infinity_polling(allowed_updates=['message', 'inline_query'])
