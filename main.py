@@ -2,22 +2,30 @@ import telebot
 import os
 import sqlite3
 import threading
+import time
 from telebot import types
 from flask import Flask
 
-# Наполегливо рекомендую перенести токен у змінні середовища Render!
 TOKEN = os.environ.get('BOT_TOKEN')
+TOKEN = '8236217660:AAHGeDEer-h-CoJKvFwRrd6iFvFPFES6dKg'
 ADMIN_IDS = [1859027118, 913802232]
 
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
-# Створюємо файл бази та таблицю автоматично при запуску, якщо їх немає
+# Створюємо файл бази та автоматично додаємо нову колонку, якщо її немає
 def init_db():
     db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stickers.db')
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute('CREATE TABLE IF NOT EXISTS tags (tag TEXT, file_id TEXT)')
+    
+    # Розумна міграція: перевіряємо наявність колонки file_unique_id
+    c.execute("PRAGMA table_info(tags)")
+    columns = [col[1] for col in c.fetchall()]
+    if 'file_unique_id' not in columns:
+        c.execute("ALTER TABLE tags ADD COLUMN file_unique_id TEXT")
+        
     conn.commit()
     conn.close()
 
@@ -62,7 +70,9 @@ def process_sticker_step(message, command):
         bot.send_message(message.chat.id, "Це не стікер. Операцію скасовано.")
         return
 
+    # Отримуємо обидва ID: звичайний та унікальний постійний
     file_id = message.sticker.file_id
+    file_unique_id = message.sticker.file_unique_id
     
     if command == '/add':
         text_prompt = "Введи тег(и) для ДОДАВАННЯ (через кому):"
@@ -71,12 +81,12 @@ def process_sticker_step(message, command):
     elif command == '/edit':
         text_prompt = "Введи НОВІ теги для цього стікера (всі старі будуть стерті, вводь через кому):"
     elif command == '/look':
-        text_prompt = "Напиши букву щоб продовжити"
+        text_prompt = "Напиши будь-яку букву або текст, щоб продовжити:"
             
     msg = bot.send_message(message.chat.id, text_prompt)
-    bot.register_next_step_handler(msg, process_tags_step, command, file_id)
+    bot.register_next_step_handler(msg, process_tags_step, command, file_id, file_unique_id)
 
-def process_tags_step(message, command, file_id):
+def process_tags_step(message, command, file_id, file_unique_id):
     if message.content_type != 'text':
         bot.send_message(message.chat.id, "Треба текст. Операцію скасовано.")
         return
@@ -91,30 +101,31 @@ def process_tags_step(message, command, file_id):
 
         if command == '/add':
             for tag in tags:
-                c.execute("INSERT INTO tags (tag, file_id) VALUES (?, ?)", (tag, file_id))
-            bot.send_message(message.chat.id, f"Додано нові теги: {', '.join(tags)}")
+                c.execute("INSERT INTO tags (tag, file_id, file_unique_id) VALUES (?, ?, ?)", (tag, file_id, file_unique_id))
+            bot.send_message(message.chat.id, f"✅ Додано нові теги: {', '.join(tags)}")
 
         elif command == '/del':
             if user_text == 'все':
-                c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
+                c.execute("DELETE FROM tags WHERE file_unique_id = ? OR file_id = ?", (file_unique_id, file_id))
                 bot.send_message(message.chat.id, "🗑 Стікер та всі його теги видалено з бази.")
             else:
                 for tag in tags:
-                    c.execute("DELETE FROM tags WHERE file_id = ? AND tag = ?", (file_id, tag))
+                    c.execute("DELETE FROM tags WHERE (file_unique_id = ? OR file_id = ?) AND tag = ?", (file_unique_id, file_id, tag))
                 bot.send_message(message.chat.id, f"🗑 Видалено теги: {', '.join(tags)}")
 
         elif command == '/edit':
-            c.execute("DELETE FROM tags WHERE file_id = ?", (file_id,))
+            c.execute("DELETE FROM tags WHERE file_unique_id = ? OR file_id = ?", (file_unique_id, file_id))
             for tag in tags:
-                c.execute("INSERT INTO tags (tag, file_id) VALUES (?, ?)", (tag, file_id))
-            bot.send_message(message.chat.id, f"Теги стікера змінено на: {', '.join(tags)}")
+                c.execute("INSERT INTO tags (tag, file_id, file_unique_id) VALUES (?, ?, ?)", (tag, file_id, file_unique_id))
+            bot.send_message(message.chat.id, f"📝 Теги стікера змінено на: {', '.join(tags)}")
 
         elif command == '/look':
-            c.execute("SELECT tag FROM tags WHERE file_id = ?", (file_id,))
+            # Шукаємо і по новому вічному ID, і по старому file_id для максимальної сумісності
+            c.execute("SELECT tag FROM tags WHERE file_unique_id = ? OR file_id = ?", (file_unique_id, file_id))
             rows = c.fetchall()
             if rows:
                 tags_list = ", ".join([row[0] for row in rows])
-                bot.send_message(message.chat.id, f"Теги стікера:\n{tags_list}")
+                bot.send_message(message.chat.id, f"🔍 Теги стікера:\n{tags_list}")
             else:
                 bot.send_message(message.chat.id, "Стікера немає в базі (тегів не знайдено).")
 
@@ -167,19 +178,8 @@ def handle_inline_stickers(inline_query):
 
 
 # ==========================================
-# 4. ЗАПУСК БОТА ТА СЕРВЕРА
-# ==========================================
-@app.route('/')
-def index(): 
-    return "Sticker Bot is running..."
-
-def run_flask():
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
-# ==========================================
 # 5. СЛУЖБОВІ КОМАНДИ ДЛЯ СТАРОЇ БАЗИ
 # ==========================================
-
 @bot.message_handler(commands=['fixdb'])
 def fix_database(message):
     if message.from_user.id not in ADMIN_IDS: return
@@ -191,16 +191,13 @@ def fix_database(message):
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         
-        # 1. Перевірка колонок
         c.execute("PRAGMA table_info(tags)")
         columns = [col[1] for col in c.fetchall()]
         bot.send_message(message.chat.id, f"📊 Колонки в базі: {', '.join(columns)}")
         
-        # 2. Рахуємо загальну кількість записів
         c.execute("SELECT COUNT(*) FROM tags")
         total_rows = c.fetchone()[0]
         
-        # 3. Рахуємо записи без file_unique_id
         if 'file_unique_id' in columns:
             c.execute("SELECT COUNT(DISTINCT file_id) FROM tags WHERE file_unique_id IS NULL OR file_unique_id = ''")
             needs_fix_count = c.fetchone()[0]
@@ -214,7 +211,6 @@ def fix_database(message):
             conn.close()
             return
 
-        # 4. Пробуємо оновити
         c.execute("SELECT DISTINCT file_id FROM tags WHERE file_unique_id IS NULL OR file_unique_id = ''")
         rows = c.fetchall()
         
@@ -233,15 +229,14 @@ def fix_database(message):
             except Exception as e:
                 err_msg = str(e)
                 if err_msg not in errors:
-                    errors.append(err_msg) # Зберігаємо унікальні помилки, щоб не спамити
+                    errors.append(err_msg)
 
         conn.commit()
         conn.close()
         
-        # 5. Звіт
         report = f"✅ Успішно оновлено стікерів: {fixed_count} з {needs_fix_count}.\n"
         if errors:
-            report += f"\n❌ Помилки від Telegram (чому інші не оновились):\n" + "\n".join(errors)
+            report += f"\n❌ Помилки від Telegram:\n" + "\n".join(errors)
             
         bot.send_message(message.chat.id, report)
         
@@ -268,10 +263,9 @@ def dump_stickers(message):
             tags = [t[0] for t in c.fetchall()]
             
             try:
-                # Бот фізично надсилає тобі стікер і пише, які теги до нього прив'язані
                 bot.send_sticker(message.chat.id, fid)
                 bot.send_message(message.chat.id, f"☝️ Теги: {', '.join(tags)}")
-                time.sleep(0.3) # Затримка, щоб Телеграм не заблокував бота за спам
+                time.sleep(0.3)
             except:
                 pass
                 
@@ -281,8 +275,17 @@ def dump_stickers(message):
         bot.send_message(message.chat.id, f"Помилка: {e}")
 
 
+# ==========================================
+# 4. ЗАПУСК БОТА ТА СЕРВЕРА (СТУКТУРНО НАЙНИЖЧЕ)
+# ==========================================
+@app.route('/')
+def index(): 
+    return "Sticker Bot is running..."
+
+def run_flask():
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
+
 if __name__ == "__main__":
-    # Запускаємо веб-сервер у фоновому потоці для Render
     threading.Thread(target=run_flask).start()
-    # Запускаємо самого бота
     bot.infinity_polling(allowed_updates=['message', 'inline_query'])
