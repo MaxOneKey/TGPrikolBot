@@ -7,7 +7,6 @@ from flask import Flask
 
 # Наполегливо рекомендую перенести токен у змінні середовища Render!
 TOKEN = os.environ.get('BOT_TOKEN')
-TOKEN = '8236217660:AAHGeDEer-h-CoJKvFwRrd6iFvFPFES6dKg'
 ADMIN_IDS = [1859027118, 913802232]
 
 bot = telebot.TeleBot(TOKEN)
